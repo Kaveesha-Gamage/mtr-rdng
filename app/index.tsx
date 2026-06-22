@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import db from '../database/db';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback } from 'react';
+import { exportDatabase } from '../utils/exportDB';
 
 export default function Home() {
   const [records, setRecords] = useState<any[]>([]);
@@ -24,6 +25,10 @@ export default function Home() {
     loadData(); // instant refresh
   };
 
+    console.log(
+      db.getAllSync('SELECT * FROM bills')
+    );
+    
   return (
     <View style={{ flex: 1, padding: 20 }}>
 
@@ -64,6 +69,13 @@ export default function Home() {
           </View>
         )}
       />
+
+      
+          <View>
+            <Button title="Export Database" onPress={exportDatabase} />
+          </View>
+
     </View>
+    
   );
 }
