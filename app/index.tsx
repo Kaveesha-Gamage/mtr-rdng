@@ -12,7 +12,7 @@ export default function Home() {
     setRecords(data);
   };
 
-  // 🔥 AUTO REFRESH WHEN SCREEN FOCUSED
+  // AUTO REFRESH WHEN SCREEN FOCUSED
   useFocusEffect(
     useCallback(() => {
       loadData();
