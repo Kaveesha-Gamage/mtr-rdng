@@ -41,19 +41,73 @@ export default function Edit() {
   }, [recordId]);
 
   const update = () => {
+
     if (!recordId) {
       return;
     }
 
+    const account = acc.trim();
+
+    const dueBill = Number(due);
+    const prev = Number(pre);
+    const curr = Number(cur);
+
+    // Required fields
+    if (
+      !account ||
+      due.trim() === '' ||
+      pre.trim() === '' ||
+      cur.trim() === ''
+    ) {
+      alert('All fields are required');
+      return;
+    }
+
+    // Numeric validation
+    if (
+      Number.isNaN(dueBill) ||
+      Number.isNaN(prev) ||
+      Number.isNaN(curr)
+    ) {
+      alert('Due bill and readings must be valid numbers');
+      return;
+    }
+
+    // Positive validation
+    if (prev <= 0 || curr <= 0) {
+      alert('Readings must be greater than 0');
+      return;
+    }
+
+    // Business rule
+    if (curr < prev) {
+      alert(
+        'Current reading must be greater than or equal to previous reading'
+      );
+      return;
+    }
+
     db.runSync(
-      `UPDATE bills
-       SET accNumber=?, dueBill=?, previousReading=?, currentReading=?
-       WHERE id=?`,
-      [acc, due, pre, cur, recordId]
+      `
+      UPDATE bills
+      SET
+        accNumber=?,
+        dueBill=?,
+        previousReading=?,
+        currentReading=?
+      WHERE id=?
+      `,
+      [
+        account,
+        dueBill,
+        prev,
+        curr,
+        recordId
+      ]
     );
 
     router.back();
-  };
+};
 
   return (
     <View style={{ padding: 20 }}>
