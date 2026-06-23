@@ -1,16 +1,24 @@
 import { View, FlatList, Button, Text } from 'react-native';
-import { useEffect, useState } from 'react';
+import { useState, useCallback } from 'react';
 import db from '../database/db';
 import { router, useFocusEffect } from 'expo-router';
-import { useCallback } from 'react';
 import { exportDatabase } from '../utils/exportDB';
 
 export default function Home() {
+
   const [records, setRecords] = useState<any[]>([]);
 
   const loadData = () => {
-    const data = db.getAllSync('SELECT * FROM bills');
-    setRecords(data);
+    try {
+      const data =
+        db.getAllSync('SELECT * FROM bills');
+
+      setRecords(data);
+
+    } catch (e) {
+      console.log('Load error:', e);
+      setRecords([]);
+    }
   };
 
   // AUTO REFRESH WHEN SCREEN FOCUSED
@@ -21,18 +29,21 @@ export default function Home() {
   );
 
   const deleteRecord = (id: number) => {
-    db.runSync('DELETE FROM bills WHERE id=?', [id]);
-    loadData(); // instant refresh
+    try {
+      db.runSync('DELETE FROM bills WHERE id=?', [id]);
+      loadData();
+    } catch (e) {
+      console.log('Delete error:', e);
+    }
   };
 
-    console.log(
-      db.getAllSync('SELECT * FROM bills')
-    );
-    
   return (
     <View style={{ flex: 1, padding: 20 }}>
 
-      <Button title="Add Record" onPress={() => router.push('/AddRecord')} />
+      <Button
+        title="Add Record"
+        onPress={() => router.push('/AddRecord')}
+      />
 
       <FlatList
         data={records}
@@ -56,7 +67,9 @@ export default function Home() {
 
               <Button
                 title="Edit"
-                onPress={() => router.push(`/EditRecord?id=${item.id}`)}
+                onPress={() =>
+                  router.push(`/EditRecord?id=${item.id}`)
+                }
               />
 
               <Button
@@ -70,12 +83,13 @@ export default function Home() {
         )}
       />
 
-      
-          <View>
-            <Button title="Export Database" onPress={exportDatabase} />
-          </View>
+      <View>
+        <Button
+          title="Export Database"
+          onPress={exportDatabase}
+        />
+      </View>
 
     </View>
-    
   );
 }
