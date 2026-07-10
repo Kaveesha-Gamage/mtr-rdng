@@ -1,7 +1,7 @@
 import { router } from "expo-router";
 import React, { useState } from "react";
 import {Image,StyleSheet,Text,TextInput,TouchableOpacity,ActivityIndicator,View,Alert,} from "react-native";
-import { loginService } from "../src/services/authService";
+import { loginService } from "../../src/services/authService";
 
 import { Ionicons } from "@expo/vector-icons";
 
@@ -41,7 +41,7 @@ export default function LoginScreen() {
     <View style={styles.container}>
       {/* Logo */}
       <Image
-        source={require("../assets/images/edl-logo.png")}
+        source={require("../../assets/images/edl-logo.png")}
         style={styles.logo}
       />
 

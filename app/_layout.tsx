@@ -1,11 +1,15 @@
 import { Stack } from "expo-router";
-import { useEffect } from "react";
-import { initDatabase } from "../src/database/db";
+import {AuthProvider} from "../src/context/AuthContext";
 
-export default function Layout() {
-  useEffect(() => {
-    initDatabase();
-  }, []);
+export default function RootLayout(){
 
-  return <Stack />;
+  return (
+    <AuthProvider>
+      <Stack
+        screenOptions={{
+          headerShown:false,
+        }}
+      />
+    </AuthProvider>
+  );
 }
