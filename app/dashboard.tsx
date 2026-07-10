@@ -7,13 +7,13 @@ export default function Dashboard(){
    <View>
 
     <Text>
-      Dashboard
+      Successfully loged in.
     </Text>
 
     <Button
-      title="Pending Readings"
+      title="logout"
       onPress={() =>
-        router.push("/pending-readings")
+        router.push("/")
       }
     />
 
