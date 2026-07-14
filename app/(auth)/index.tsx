@@ -2,7 +2,6 @@ import { router } from "expo-router";
 import React, { useState } from "react";
 import {Image,StyleSheet,Text,TextInput,TouchableOpacity,ActivityIndicator,View,Alert,} from "react-native";
 import { loginService } from "../../src/services/authService";
-
 import { Ionicons } from "@expo/vector-icons";
 
 export default function LoginScreen() {
