@@ -1,41 +1,25 @@
 import * as SecureStore from "expo-secure-store";
+import { Session } from "../types/Session";
 
+const SESSION_KEY = "session";
 
-export const saveSecureData =
-async(
-    key:string,
-    value:string
-)=>{
+export async function saveSession(session: Session) {
+  await SecureStore.setItemAsync(
+    SESSION_KEY,
+    JSON.stringify(session)
+  );
+}
 
-    await SecureStore.setItemAsync(
-        key,
-        value
-    );
+export async function getSession(): Promise<Session | null> {
+  const data = await SecureStore.getItemAsync(SESSION_KEY);
 
-};
+  if (!data) {
+    return null;
+  }
 
+  return JSON.parse(data);
+}
 
-
-export const getSecureData =
-async(
-    key:string
-)=>{
-
-    return await SecureStore.getItemAsync(
-        key
-    );
-
-};
-
-
-
-export const deleteSecureData =
-async(
-    key:string
-)=>{
-
-    await SecureStore.deleteItemAsync(
-        key
-    );
-
-};
+export async function clearSession() {
+  await SecureStore.deleteItemAsync(SESSION_KEY);
+}
