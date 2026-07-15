@@ -1,8 +1,17 @@
+import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React, { useState } from "react";
-import {Image,StyleSheet,Text,TextInput,TouchableOpacity,ActivityIndicator,View,Alert,} from "react-native";
+import {
+  ActivityIndicator,
+  Alert,
+  Image,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { loginService } from "../../src/services/authService";
-import { Ionicons } from "@expo/vector-icons";
 
 export default function LoginScreen() {
   const [passwordVisible, setPasswordVisible] = useState(false);
@@ -28,8 +37,7 @@ export default function LoginScreen() {
     } catch (error: any) {
       Alert.alert(
         "Error",
-        error?.response?.data?.message ??
-          "Unable to connect to server."
+        error?.response?.data?.message ?? "Unable to connect to server.",
       );
     } finally {
       setLoading(false);
@@ -40,7 +48,7 @@ export default function LoginScreen() {
     <View style={styles.container}>
       {/* Logo */}
       <Image
-        source={require("../../assets/images/edl-logo.png")}
+        source={require("../../src/assets/images/edl-logo.png")}
         style={styles.logo}
       />
 
@@ -97,7 +105,7 @@ export default function LoginScreen() {
       </View>
 
       {/* Sign In Button */}
-      <TouchableOpacity 
+      <TouchableOpacity
         style={styles.button}
         onPress={handleLogin}
         disabled={loading}
@@ -105,7 +113,7 @@ export default function LoginScreen() {
         {loading ? (
           <ActivityIndicator color="white" />
         ) : (
-        <Text style={styles.buttonText}>SIGN IN</Text>
+          <Text style={styles.buttonText}>SIGN IN</Text>
         )}
       </TouchableOpacity>
 
