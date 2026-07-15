@@ -1,6 +1,7 @@
 import { Calendar, Clock } from "lucide-react-native";
+import { router } from "expo-router";
 import React from "react";
-import { Dimensions, StyleSheet, Text, View } from "react-native";
+import { Dimensions, StyleSheet, Text, View, TouchableOpacity } from "react-native";
 import Svg, { Circle } from "react-native-svg";
 
 const { width } = Dimensions.get("window");
@@ -44,9 +45,13 @@ export default function MeterReadingDashboard({
     <View style={styles.cardContainer}>
       {/* Header Titles */}
       <Text style={styles.mainTitle}>METER READING STATUS</Text>
-      <View style={styles.badge}>
+      <TouchableOpacity
+        style={styles.badge}
+        onPress={() => router.push("/pending-readings")}
+        activeOpacity={0.7}
+      >
         <Text style={styles.badgeText}>PENDING READINGS</Text>
-      </View>
+      </TouchableOpacity>
 
       {/* Donut Chart Component */}
       <View style={styles.chartContainer}>
@@ -88,7 +93,7 @@ export default function MeterReadingDashboard({
         <View style={styles.legendItem}>
           <View style={styles.legendHeader}>
             <View style={[styles.dot, { backgroundColor: "#4CAF50" }]} />
-            <Text style={styles.legendTitle}>Reading Received</Text>
+            <Text style={styles.legendTitle}>Reading Taken</Text>
           </View>
           <Text style={styles.legendData}>
             {receivedCount}{" "}
@@ -100,7 +105,7 @@ export default function MeterReadingDashboard({
         <View style={styles.legendItem}>
           <View style={styles.legendHeader}>
             <View style={[styles.dot, { backgroundColor: "#FF5722" }]} />
-            <Text style={styles.legendTitle}>Reading Not{"\n"}Received</Text>
+            <Text style={styles.legendTitle}>Reading Not{"\n"}Taken</Text>
           </View>
           <Text style={styles.legendData}>
             {pendingCount}{" "}
