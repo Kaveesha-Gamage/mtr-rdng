@@ -130,7 +130,7 @@ export default function PendingReadings() {
 
       <FlatList
         data={filteredCustomers}
-        keyExtractor={(item) => item.accountNumber}
+        keyExtractor={(item, index) => `${item.accountNumber || ""}-${item.installationId || ""}-${index}`}
         renderItem={({ item }) => (
           <View style={styles.card}>
             <View style={{ flex: 2 }}>
