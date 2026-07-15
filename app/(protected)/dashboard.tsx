@@ -1,49 +1,37 @@
-import { View, Text, Button } from "react-native";
-import { router } from "expo-router";
-import { useAuth } from "../../src/context/AuthContext";
+import React from "react";
+import { SafeAreaView, ScrollView, StyleSheet } from "react-native";
+import MeterReadingDashboard from "../../src/components/MeterReadingDashboard";
 
-
-export default function Dashboard(){
-
-  const {session, logout} = useAuth();
-
+export default function DashboardScreen() {
+  // You can pull real data from your pendingApi / pendingRepository later
+  const dashboardData = {
+    totalCustomers: 461,
+    receivedCount: 0,
+    pendingCount: 461,
+  };
 
   return (
-
-    <View
-      style={{
-        flex:1,
-        justifyContent:"center",
-        alignItems:"center"
-      }}
-    >
-
-      <Text>
-        Welcome {session?.userName}
-      </Text>
-
-
-      <Text>
-        Successfully logged in.
-      </Text>
-
-
-      <Button
-        title="Download Pending Readings"
-        onPress={() =>
-          router.push("/pending-readings")
-        }
-      />
-
-
-      <Button
- title="logout"
- onPress={() =>
-   router.push("/")
- }
-/>
-
-    </View>
-
+    <SafeAreaView style={styles.container}>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        {/* Render the Meter Reading Dashboard Card */}
+        <MeterReadingDashboard
+          totalCustomers={dashboardData.totalCustomers}
+          receivedCount={dashboardData.receivedCount}
+          pendingCount={dashboardData.pendingCount}
+        />
+      </ScrollView>
+    </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#F7F9FC",
+  },
+  scrollContent: {
+    paddingVertical: 24,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+});
