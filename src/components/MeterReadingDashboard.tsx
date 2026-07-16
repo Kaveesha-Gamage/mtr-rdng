@@ -1,7 +1,13 @@
-import { Calendar, Clock } from "lucide-react-native";
 import { router } from "expo-router";
+import { Calendar, Clock } from "lucide-react-native";
 import React from "react";
-import { Dimensions, StyleSheet, Text, View, TouchableOpacity } from "react-native";
+import {
+  Dimensions,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import Svg, { Circle } from "react-native-svg";
 
 const { width } = Dimensions.get("window");
