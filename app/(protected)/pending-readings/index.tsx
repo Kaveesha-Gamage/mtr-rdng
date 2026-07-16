@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {View,Text,StyleSheet,TextInput,FlatList,TouchableOpacity,ActivityIndicator,} from "react-native";
 import { Picker } from "@react-native-picker/picker";
 import { Ionicons } from "@expo/vector-icons";
@@ -13,6 +13,7 @@ export default function PendingReadings() {
   );
 
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState("Account Number");
@@ -23,30 +24,10 @@ export default function PendingReadings() {
     loadPendingReadings();
   }, []);
 
-  useEffect(() => {
-    filterCustomers();
-  }, [search, customers]);
-
-  const loadPendingReadings = async () => {
-    try {
-      setLoading(true);
-
-      const response = await downloadPendingReadings();
-
-      if (response.success) {
-        setCustomers(response.pending_readings);
-        setFilteredCustomers(response.pending_readings);
-      }
-    } catch (error) {
-      console.log("Download Error:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const filterCustomers = () => {
+  const filterCustomers = useCallback(() => {
     let data = [...customers];
 
+    // 1. Search Filter (by Account Number)
     if (search.trim() !== "") {
       data = data.filter((item) =>
         item.accountNumber
@@ -55,7 +36,57 @@ export default function PendingReadings() {
       );
     }
 
+    // 2. Net Type Filter
+    if (netType !== "All") {
+      data = data.filter((item) => item.netType === netType);
+    }
+
+    // 3. Sorting
+    data.sort((a, b) => {
+      if (sortBy === "Account Number") {
+        return (a.accountNumber || "").localeCompare(b.accountNumber || "");
+      } else if (sortBy === "Installation ID") {
+        return (a.installationId || "").localeCompare(b.installationId || "");
+      }
+      return 0;
+    });
+
+    // 4. Limit items (Pagination/Show count)
+    const limit = parseInt(show, 10);
+    if (!isNaN(limit)) {
+      data = data.slice(0, limit);
+    }
+
     setFilteredCustomers(data);
+  }, [search, sortBy, netType, show, customers]);
+
+  useEffect(() => {
+    filterCustomers();
+  }, [filterCustomers]);
+
+  /**
+   * Data flow:
+   *  pendingService downloads from the API → clears SQLite → saves new records
+   *  → reads back from SQLite and returns the result.
+   * The UI only ever renders what SQLite contains.
+   */
+  const loadPendingReadings = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const response = await downloadPendingReadings();
+
+      // response.pending_readings is already sourced from SQLite inside the service.
+      setCustomers(response.pending_readings);
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "An unexpected error occurred.";
+      console.error("Failed to load pending readings:", err);
+      setError(message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (loading) {
@@ -63,6 +94,18 @@ export default function PendingReadings() {
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#8B0000" />
         <Text style={{ marginTop: 10 }}>Loading Pending Readings...</Text>
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Ionicons name="cloud-offline-outline" size={48} color="#8B0000" />
+        <Text style={styles.errorText}>{error}</Text>
+        <TouchableOpacity style={styles.retryButton} onPress={loadPendingReadings}>
+          <Text style={styles.retryButtonText}>Retry</Text>
+        </TouchableOpacity>
       </View>
     );
   }
@@ -271,5 +314,28 @@ const styles = StyleSheet.create({
     marginTop: 30,
     color: "#666",
     fontSize: 16,
+  },
+
+  errorText: {
+    textAlign: "center",
+    marginTop: 16,
+    marginHorizontal: 24,
+    color: "#8B0000",
+    fontSize: 15,
+    lineHeight: 22,
+  },
+
+  retryButton: {
+    marginTop: 20,
+    backgroundColor: "#8B0000",
+    paddingHorizontal: 28,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+
+  retryButtonText: {
+    color: "white",
+    fontWeight: "700",
+    fontSize: 15,
   },
 });
