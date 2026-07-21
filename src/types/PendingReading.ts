@@ -20,6 +20,7 @@ export interface PendingReading {
   bfBalance: number;
   vatApplicable: string;
   totalMeters: number;
+  customerName?: string;
 
   // Mobile App fields (not returned by API)
   currentReading?: number;
