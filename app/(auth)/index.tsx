@@ -12,8 +12,10 @@ import {
   View,
 } from "react-native";
 import { loginService } from "../../src/services/authService";
+import { useAuth } from "../../src/context/AuthContext";
 
 export default function LoginScreen() {
+  const { refreshSession } = useAuth();
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [userId, setUserId] = useState("");
   const [password, setPassword] = useState("");
@@ -30,6 +32,7 @@ export default function LoginScreen() {
       });
 
       if (response.success) {
+        await refreshSession();
         router.replace("/dashboard");
       } else {
         Alert.alert("Login Failed", response.message);
