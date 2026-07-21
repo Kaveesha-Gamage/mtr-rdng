@@ -16,7 +16,7 @@ export const initDatabase = () => {
 
   // 2. Detect stale schema for pending_readings (drop if column structure is outdated)
   try {
-    db.execSync(`SELECT accountNumber, currentReading FROM pending_readings LIMIT 0;`);
+    db.execSync(`SELECT accountNumber, customerName FROM pending_readings LIMIT 0;`);
   } catch (error) {
     console.log("Stale pending_readings table detected, dropping to apply update:", error);
     try {
@@ -31,6 +31,7 @@ export const initDatabase = () => {
     CREATE TABLE IF NOT EXISTS pending_readings (
       accountNumber TEXT NOT NULL,
       installationId TEXT NOT NULL,
+      customerName TEXT,
       tariff TEXT,
       readerCode TEXT,
       dailyPack TEXT,

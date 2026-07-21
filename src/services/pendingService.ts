@@ -9,37 +9,132 @@ import { PendingReadingResponse } from "../types/PendingReadingResponse";
 import { PendingReading } from "../types/PendingReading";
 
 /**
- * Defensive mapper that normalises snake_case API keys into the camelCase
+ * Defensive mapper that normalises API keys (snake_case, acc_no, inst_id, etc.) into the camelCase
  * properties expected by the TypeScript models and SQLite schema.
  */
-const mapToPendingReading = (item: any): PendingReading => {
+const extractAccountNumber = (item: any): string => {
+  if (!item || typeof item !== "object") return "";
+
+  const keys = Object.keys(item);
+  for (const key of keys) {
+    const lower = key.toLowerCase().replace(/[^a-z0-9]/g, "");
+    if (
+      lower.includes("accnbr") ||
+      lower.includes("accountnbr") ||
+      lower === "accno" ||
+      lower === "accountno" ||
+      lower === "accountnumber" ||
+      lower === "accnumber" ||
+      lower === "acctno" ||
+      lower === "acctnumber" ||
+      lower === "accountid" ||
+      lower === "accnum" ||
+      lower === "account" ||
+      lower === "contractno" ||
+      lower === "custaccno" ||
+      lower === "customeraccno"
+    ) {
+      const val = item[key];
+      if (val !== undefined && val !== null && String(val).trim() !== "") {
+        return String(val).trim();
+      }
+    }
+  }
+
+  for (const key of keys) {
+    if (typeof item[key] === "object" && item[key] !== null) {
+      const nestedAcc = extractAccountNumber(item[key]);
+      if (nestedAcc) return nestedAcc;
+    }
+  }
+
+  return "";
+};
+
+const extractInstallationId = (item: any, fallbackIndex: number): string => {
+  if (!item || typeof item !== "object") return String(fallbackIndex + 1);
+
+  const keys = Object.keys(item);
+  for (const key of keys) {
+    const lower = key.toLowerCase().replace(/[^a-z0-9]/g, "");
+    if (
+      lower === "installationid" ||
+      lower === "instid" ||
+      lower === "installationno" ||
+      lower === "instno" ||
+      lower === "installation"
+    ) {
+      const val = item[key];
+      if (val !== undefined && val !== null && String(val).trim() !== "") {
+        return String(val).trim();
+      }
+    }
+  }
+  return String(fallbackIndex + 1);
+};
+
+const mapToPendingReading = (
+  item: any,
+  index: number,
+  parentAreaCode?: string,
+  parentAreaName?: string
+): PendingReading => {
+  const accNo = extractAccountNumber(item);
+  const instId = extractInstallationId(item, index);
+
+  if (!accNo) {
+    console.warn(
+      `[pendingService] Record ${index} missing account number! Available keys:`,
+      Object.keys(item),
+      "Item:",
+      JSON.stringify(item)
+    );
+  }
+
   return {
-    accountNumber:      item.accountNumber     ?? item.account_number      ?? "",
-    tariff:             item.tariff             ?? "",
-    readerCode:         item.readerCode         ?? item.reader_code         ?? "",
-    dailyPack:          item.dailyPack           ?? item.daily_pack          ?? "",
-    walkOrder:          item.walkOrder           ?? item.walk_order          ?? "",
-    currentBillCycle:   item.currentBillCycle    ?? item.current_bill_cycle  ?? "",
-    billCycleDate:      item.billCycleDate       ?? item.bill_cycle_date     ?? "",
-    areaCode:           item.areaCode            ?? item.area_code           ?? "",
-    areaName:           item.areaName            ?? item.area_name           ?? "",
-    installationId:     item.installationId      ?? item.installation_id     ?? "",
-    customerCategory:   item.customerCategory    ?? item.customer_category   ?? "",
-    customerType:       item.customerType        ?? item.customer_type       ?? "",
-    netType:            item.netType             ?? item.net_type            ?? "",
-    netTypeName:        item.netTypeName         ?? item.net_type_name       ?? "",
-    readingDate:        item.readingDate !== undefined
-                          ? item.readingDate
-                          : (item.reading_date ?? null),
-    previousReadingDate: item.previousReadingDate ?? item.previous_reading_date ?? "",
-    numberOfDays:       Number(item.numberOfDays   ?? item.number_of_days   ?? 0),
-    meterSequence:      Number(item.meterSequence  ?? item.meter_sequence   ?? 0),
-    bfBalance:          Number(item.bfBalance      ?? item.bf_balance       ?? 0),
-    vatApplicable:      item.vatApplicable      ?? item.vat_applicable      ?? "",
-    totalMeters:        Number(item.totalMeters    ?? item.total_meters     ?? 0),
-    currentReading:     item.currentReading,
-    remarks:            item.remarks,
-    syncStatus:         item.syncStatus,
+    accountNumber: accNo,
+    installationId: instId,
+    customerName: String(
+      item.customerName ??
+        item.customer_name ??
+        item.cust_name ??
+        item.name ??
+        item.cust_nam ??
+        ""
+    ).trim(),
+    tariff: String(item.tariff ?? "").trim(),
+    readerCode: String(item.readerCode ?? item.reader_code ?? item.reader_cd ?? "").trim(),
+    dailyPack: String(item.dailyPack ?? item.daily_pack ?? item.daily_pk ?? "").trim(),
+    walkOrder: String(item.walkOrder ?? item.walk_order ?? item.walk_seq ?? item.walk_ord ?? index + 1).trim(),
+    currentBillCycle: String(
+      item.currentBillCycle ??
+        item.current_bill_cycle ??
+        item.active_bill_cycle ??
+        item.bill_cycle ??
+        ""
+    ).trim(),
+    billCycleDate: String(item.billCycleDate ?? item.bill_cycle_date ?? item.bill_date ?? "").trim(),
+    areaCode: String(item.areaCode ?? item.area_code ?? parentAreaCode ?? "").trim(),
+    areaName: String(item.areaName ?? item.area_name ?? parentAreaName ?? "").trim(),
+    customerCategory: String(item.customerCategory ?? item.customer_category ?? item.cust_cat ?? "").trim(),
+    customerType: String(item.customerType ?? item.customer_type ?? item.cust_type ?? "").trim(),
+    netType: String(item.netType ?? item.net_type ?? "").trim(),
+    netTypeName: String(item.netTypeName ?? item.net_type_name ?? item.net_type_desc ?? "").trim(),
+    readingDate:
+      item.readingDate !== undefined
+        ? item.readingDate
+        : (item.reading_date ?? item.rdg_date ?? null),
+    previousReadingDate: String(
+      item.previousReadingDate ?? item.previous_reading_date ?? item.prev_rdg_date ?? ""
+    ).trim(),
+    numberOfDays: Number(item.numberOfDays ?? item.number_of_days ?? item.no_of_days ?? 0),
+    meterSequence: Number(item.meterSequence ?? item.meter_sequence ?? item.meter_seq ?? 0),
+    bfBalance: Number(item.bfBalance ?? item.bf_balance ?? item.bf_bal ?? 0),
+    vatApplicable: String(item.vatApplicable ?? item.vat_applicable ?? item.vat_app ?? "").trim(),
+    totalMeters: Number(item.totalMeters ?? item.total_meters ?? item.tot_meters ?? 0),
+    currentReading: item.currentReading,
+    remarks: item.remarks,
+    syncStatus: item.syncStatus,
   };
 };
 
@@ -52,7 +147,10 @@ const mapToPendingReading = (item: any): PendingReading => {
  *
  * On network failure, returns whatever is already cached in SQLite.
  */
-export const downloadPendingReadings = async (): Promise<PendingReadingResponse> => {
+export const downloadPendingReadings = async (): Promise<{
+  success: boolean;
+  pending_readings: PendingReading[];
+}> => {
   try {
     const session = await getSession();
 
@@ -68,6 +166,8 @@ export const downloadPendingReadings = async (): Promise<PendingReadingResponse>
       account_number: null,
     };
 
+    console.log("[pendingService] Initiating download with request:", request);
+
     // Step 1: Download from the API.
     const response = await getPendingReadings(request);
 
@@ -78,7 +178,25 @@ export const downloadPendingReadings = async (): Promise<PendingReadingResponse>
     }
 
     // Step 2: Normalise API keys to camelCase.
-    const mappedReadings = response.pending_readings.map(mapToPendingReading);
+    const parentAreaCode = Array.isArray(response.pending_readings)
+      ? response.area_code
+      : response.pending_readings?.area_code ?? response.area_code;
+    const parentAreaName = Array.isArray(response.pending_readings)
+      ? undefined
+      : response.pending_readings?.area_name;
+
+    const rawReadings = Array.isArray(response.pending_readings)
+      ? response.pending_readings
+      : response.pending_readings?.pending_customers ?? [];
+
+    console.log(`[pendingService] Downloaded ${rawReadings.length} pending records.`);
+    if (rawReadings.length > 0) {
+      console.log("[pendingService] Sample raw record 0:", JSON.stringify(rawReadings[0]));
+    }
+
+    const mappedReadings = rawReadings.map((item: any, index: number) =>
+      mapToPendingReading(item, index, parentAreaCode, parentAreaName)
+    );
 
     // Step 3: Clear old local records so the SQLite table always reflects the
     //         latest server state for this session.
@@ -89,6 +207,7 @@ export const downloadPendingReadings = async (): Promise<PendingReadingResponse>
 
     // Step 5: Read back from SQLite — the UI always renders SQLite data.
     const localReadings = getPendingReadingsFromDB();
+    console.log(`[pendingService] Successfully persisted to SQLite. DB count: ${localReadings.length}`);
 
     return {
       success: true,

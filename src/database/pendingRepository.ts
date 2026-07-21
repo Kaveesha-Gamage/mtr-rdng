@@ -10,12 +10,13 @@ import { PendingReading } from "../types/PendingReading";
 export const savePendingReadings = (readings: PendingReading[]): void => {
   const insertStmt = db.prepareSync(`
     INSERT INTO pending_readings (
-      accountNumber, installationId, tariff, readerCode, dailyPack, walkOrder,
+      accountNumber, installationId, customerName, tariff, readerCode, dailyPack, walkOrder,
       currentBillCycle, billCycleDate, areaCode, areaName, customerCategory,
       customerType, netType, netTypeName, readingDate, previousReadingDate,
       numberOfDays, meterSequence, bfBalance, vatApplicable, totalMeters
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(accountNumber, installationId) DO UPDATE SET
+      customerName = excluded.customerName,
       tariff = excluded.tariff,
       readerCode = excluded.readerCode,
       dailyPack = excluded.dailyPack,
@@ -43,6 +44,7 @@ export const savePendingReadings = (readings: PendingReading[]): void => {
         insertStmt.executeSync([
           reading.accountNumber,
           reading.installationId,
+          reading.customerName ?? "",
           reading.tariff,
           reading.readerCode,
           reading.dailyPack,
@@ -77,7 +79,7 @@ export const savePendingReadings = (readings: PendingReading[]): void => {
 export const getPendingReadingsFromDB = (): PendingReading[] => {
   return db.getAllSync<PendingReading>(`
     SELECT 
-      accountNumber, installationId, tariff, readerCode, dailyPack, walkOrder,
+      accountNumber, installationId, customerName, tariff, readerCode, dailyPack, walkOrder,
       currentBillCycle, billCycleDate, areaCode, areaName, customerCategory,
       customerType, netType, netTypeName, readingDate, previousReadingDate,
       numberOfDays, meterSequence, bfBalance, vatApplicable, totalMeters,

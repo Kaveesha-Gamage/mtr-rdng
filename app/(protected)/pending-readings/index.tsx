@@ -1,5 +1,14 @@
 import React, { useEffect, useState, useCallback } from "react";
-import {View,Text,StyleSheet,TextInput,FlatList,TouchableOpacity,ActivityIndicator,} from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TextInput,
+  FlatList,
+  TouchableOpacity,
+  ActivityIndicator,
+  ScrollView,
+} from "react-native";
 import { Picker } from "@react-native-picker/picker";
 import { Ionicons } from "@expo/vector-icons";
 
@@ -77,8 +86,11 @@ export default function PendingReadings() {
 
       const response = await downloadPendingReadings();
 
-      // response.pending_readings is already sourced from SQLite inside the service.
-      setCustomers(response.pending_readings);
+      const readings = Array.isArray(response.pending_readings)
+        ? response.pending_readings
+        : (response.pending_readings as any)?.pending_customers ?? [];
+
+      setCustomers(readings);
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "An unexpected error occurred.";
@@ -174,42 +186,63 @@ export default function PendingReadings() {
       <FlatList
         data={filteredCustomers}
         keyExtractor={(item, index) => `${item.accountNumber || ""}-${item.installationId || ""}-${index}`}
-        renderItem={({ item }) => (
-          <View style={styles.card}>
-            <View style={{ flex: 2 }}>
-              <Text style={styles.label}>Account</Text>
-              <Text>{item.accountNumber}</Text>
-            </View>
+        renderItem={({ item }) => {
+          const netTypeName = item.netTypeName || item.netType || "Standard";
+          const isMetering = netTypeName.toLowerCase().includes("metering");
+          const isPlus = netTypeName.toLowerCase().includes("plus");
+          const isAccounting = netTypeName.toLowerCase().includes("accounting");
 
-            <View style={{ flex: 3 }}>
-              <Text style={styles.label}>Installation</Text>
-              <Text>{item.installationId}</Text>
-            </View>
+          const badgeStyle = isMetering
+            ? styles.badgeBlue
+            : isPlus
+            ? styles.badgePurple
+            : isAccounting
+            ? styles.badgeOrange
+            : styles.badgeGray;
 
-            <View style={{ flex: 2 }}>
-              <Text style={styles.label}>Category</Text>
-              <Text>{item.customerCategory}</Text>
-            </View>
+          const badgeTextStyle = isMetering
+            ? styles.badgeTextBlue
+            : isPlus
+            ? styles.badgeTextPurple
+            : isAccounting
+            ? styles.badgeTextOrange
+            : styles.badgeTextGray;
 
-            <View style={{ flex: 2 }}>
-              <Text style={styles.label}>Net Type</Text>
-              <Text>{item.netTypeName}</Text>
-              <Text>Reader : {item.readerCode}</Text>
-            </View>
+          return (
+            <View style={styles.card}>
+              {/* Top Row: Account Number & Net Type Badge */}
+              <View style={styles.cardTopRow}>
+                <View style={styles.accountContainer}>
+                  <Ionicons name="flash-outline" size={16} color="#8B0000" style={{ marginRight: 5 }} />
+                  <Text style={styles.accountNumberText}>{item.accountNumber}</Text>
+                </View>
 
-            <TouchableOpacity style={styles.button}>
-              <Ionicons
-                name="add"
-                color="white"
-                size={18}
-              />
+                <View style={[styles.badge, badgeStyle]}>
+                  <Text style={[styles.badgeText, badgeTextStyle]}>{netTypeName}</Text>
+                </View>
+              </View>
 
-              <Text style={styles.buttonText}>
-                Insert Reading
+              {/* Middle Row: Customer Name */}
+              <Text style={styles.customerNameText} numberOfLines={2}>
+                {item.customerName || "Customer Name Unavailable"}
               </Text>
-            </TouchableOpacity>
-          </View>
-        )}
+
+              {/* Bottom Row: Reader info & Action Button */}
+              <View style={styles.cardBottomRow}>
+                <View style={styles.metaContainer}>
+                  {item.readerCode ? (
+                    <Text style={styles.metaText}>Reader: {item.readerCode}</Text>
+                  ) : null}
+                </View>
+
+                <TouchableOpacity style={styles.button} activeOpacity={0.8}>
+                  <Ionicons name="add-circle" color="white" size={16} />
+                  <Text style={styles.buttonText}>Insert Reading</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          );
+        }}
         ListEmptyComponent={
           <Text style={styles.emptyText}>
             No pending readings found.
@@ -223,7 +256,7 @@ export default function PendingReadings() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F4F4F4",
+    backgroundColor: "#F8F9FA",
     padding: 15,
   },
 
@@ -251,9 +284,9 @@ const styles = StyleSheet.create({
     backgroundColor: "white",
     borderRadius: 10,
     alignItems: "center",
-    paddingHorizontal: 10,
+    paddingHorizontal: 12,
     borderWidth: 1,
-    borderColor: "#ddd",
+    borderColor: "#E0E0E0",
     marginBottom: 15,
   },
 
@@ -261,52 +294,121 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 45,
     marginLeft: 8,
+    fontSize: 14,
   },
 
   filterRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 20,
+    marginBottom: 16,
   },
 
   pickerContainer: {
     flex: 1,
     borderWidth: 1,
-    borderColor: "#ddd",
+    borderColor: "#E0E0E0",
     borderRadius: 8,
     marginHorizontal: 3,
     backgroundColor: "white",
   },
 
   card: {
-    backgroundColor: "#FFF6F6",
-    borderRadius: 10,
-    padding: 12,
-    marginBottom: 10,
+    backgroundColor: "white",
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: "#EAEAEA",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+
+  cardTopRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+
+  accountContainer: {
     flexDirection: "row",
     alignItems: "center",
   },
 
-  label: {
+  accountNumberText: {
+    fontSize: 16,
     fontWeight: "bold",
-    marginBottom: 4,
-    color: "#666",
-    fontSize: 12,
+    color: "#111111",
+    letterSpacing: 0.5,
   },
+
+  customerNameText: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#333333",
+    lineHeight: 20,
+    marginBottom: 10,
+  },
+
+  cardBottomRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: "#F4F4F4",
+  },
+
+  metaContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+
+  metaText: {
+    fontSize: 12,
+    color: "#777777",
+  },
+
+  badge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+
+  badgeText: {
+    fontSize: 11,
+    fontWeight: "600",
+  },
+
+  badgeBlue: { backgroundColor: "#EBF3FF" },
+  badgeTextBlue: { color: "#1062FE" },
+
+  badgePurple: { backgroundColor: "#F5EEFF" },
+  badgeTextPurple: { color: "#8A3FFC" },
+
+  badgeOrange: { backgroundColor: "#FFF3E0" },
+  badgeTextOrange: { color: "#E65100" },
+
+  badgeGray: { backgroundColor: "#F4F4F4" },
+  badgeTextGray: { color: "#666666" },
 
   button: {
     backgroundColor: "#1EAF45",
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 12,
+    paddingHorizontal: 14,
     paddingVertical: 8,
-    borderRadius: 6,
+    borderRadius: 8,
   },
 
   buttonText: {
     color: "white",
     marginLeft: 5,
     fontWeight: "600",
+    fontSize: 13,
   },
 
   emptyText: {

@@ -1,7 +1,7 @@
 import { LogOut, Database } from "lucide-react-native";
 import React, { useState, useEffect } from "react";
-import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Stack } from "expo-router";
 import { useIsFocused } from "@react-navigation/native";
 import MeterReadingDashboard from "../../src/components/MeterReadingDashboard";
@@ -12,6 +12,7 @@ import { exportDatabase } from "../../src/utils/exportDB";
 export default function DashboardScreen() {
   const { logout } = useAuth();
   const isFocused = useIsFocused();
+  const insets = useSafeAreaInsets();
 
   const [dashboardData, setDashboardData] = useState({
     totalCustomers: 0,
@@ -56,7 +57,7 @@ export default function DashboardScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <Stack.Screen
         options={{
           title: "Dashboard",
@@ -67,7 +68,13 @@ export default function DashboardScreen() {
           ),
         }}
       />
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingBottom: insets.bottom + 32 }
+        ]}
+      >
         {/* Render the Meter Reading Dashboard Card */}
         <MeterReadingDashboard
           totalCustomers={dashboardData.totalCustomers}
@@ -87,7 +94,7 @@ export default function DashboardScreen() {
           <Text style={styles.logoutButtonText}>Logout</Text>
         </TouchableOpacity>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -97,9 +104,12 @@ const styles = StyleSheet.create({
     backgroundColor: "#F7F9FC",
   },
   scrollContent: {
-    paddingVertical: 24,
+    paddingTop: 24,
     alignItems: "center",
-    justifyContent: "center",
+  },
+  scrollView: {
+    flex: 1,
+    width: "100%",
   },
   headerRightButton: {
     marginRight: 16,
