@@ -10,7 +10,7 @@ import { getPendingReadingsCount } from "../../src/database/pendingRepository";
 import { exportDatabase } from "../../src/utils/exportDB";
 
 export default function DashboardScreen() {
-  const { logout } = useAuth();
+  const { logout, session } = useAuth();
   const isFocused = useIsFocused();
   const insets = useSafeAreaInsets();
 
@@ -75,6 +75,29 @@ export default function DashboardScreen() {
           { paddingBottom: insets.bottom + 32 }
         ]}
       >
+        {/* Welcome Section */}
+        {session ? (
+          <View style={styles.welcomeCard}>
+            <Text style={styles.welcomeGreet}>Welcome Back, {session.userName} 👋</Text>
+            <View style={styles.sessionDetailsRow}>
+              <View style={styles.sessionDetailItem}>
+                <Text style={styles.sessionDetailLabel}>AREA CODE</Text>
+                <Text style={styles.sessionDetailVal}>{session.areaCode}</Text>
+              </View>
+              <View style={styles.sessionDetailDivider} />
+              <View style={styles.sessionDetailItem}>
+                <Text style={styles.sessionDetailLabel}>BILL CYCLE</Text>
+                <Text style={styles.sessionDetailVal}>{session.activeBillCycle}</Text>
+              </View>
+              <View style={styles.sessionDetailDivider} />
+              <View style={styles.sessionDetailItem}>
+                <Text style={styles.sessionDetailLabel}>REGION</Text>
+                <Text style={styles.sessionDetailVal}>{session.regionCode}</Text>
+              </View>
+            </View>
+          </View>
+        ) : null}
+
         {/* Render the Meter Reading Dashboard Card */}
         <MeterReadingDashboard
           totalCustomers={dashboardData.totalCustomers}
@@ -84,14 +107,14 @@ export default function DashboardScreen() {
 
         {/* Export Database Button */}
         <TouchableOpacity style={styles.exportButton} onPress={exportDatabase} activeOpacity={0.7}>
-          <Database size={18} color="#2B6CB0" style={styles.exportIcon} />
-          <Text style={styles.exportButtonText}>Export Database</Text>
+          <Database size={18} color="#475569" style={styles.exportIcon} />
+          <Text style={styles.exportButtonText}>Export SQLite Database</Text>
         </TouchableOpacity>
 
         {/* Logout Button */}
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout} activeOpacity={0.7}>
-          <LogOut size={18} color="#E53935" style={styles.logoutIcon} />
-          <Text style={styles.logoutButtonText}>Logout</Text>
+          <LogOut size={18} color="#EF4444" style={styles.logoutIcon} />
+          <Text style={styles.logoutButtonText}>Log Out</Text>
         </TouchableOpacity>
       </ScrollView>
     </View>
@@ -101,11 +124,12 @@ export default function DashboardScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F7F9FC",
+    backgroundColor: "#F8FAFC",
   },
   scrollContent: {
-    paddingTop: 24,
+    paddingTop: 20,
     alignItems: "center",
+    paddingHorizontal: 20,
   },
   scrollView: {
     flex: 1,
@@ -115,22 +139,71 @@ const styles = StyleSheet.create({
     marginRight: 16,
     padding: 4,
   },
+  welcomeCard: {
+    width: "100%",
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    padding: 18,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    shadowColor: "#0F172A",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  welcomeGreet: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#0F172A",
+    marginBottom: 14,
+  },
+  sessionDetailsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: "#F8FAFC",
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    borderRadius: 12,
+  },
+  sessionDetailItem: {
+    flex: 1,
+    alignItems: "center",
+  },
+  sessionDetailLabel: {
+    fontSize: 10,
+    fontWeight: "800",
+    color: "#64748B",
+    marginBottom: 4,
+    letterSpacing: 0.5,
+  },
+  sessionDetailVal: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#1E293B",
+  },
+  sessionDetailDivider: {
+    width: 1,
+    height: 24,
+    backgroundColor: "#E2E8F0",
+  },
   exportButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    marginTop: 24,
-    backgroundColor: "#EBF5FF",
+    marginTop: 20,
+    backgroundColor: "#FFFFFF",
     borderWidth: 1,
-    borderColor: "#BEE3F8",
-    borderRadius: 12,
-    paddingVertical: 12,
+    borderColor: "#CBD5E1",
+    borderRadius: 16,
+    paddingVertical: 14,
     paddingHorizontal: 24,
-    width: "90%",
-    maxWidth: 300,
-    shadowColor: "#3182CE",
+    width: "100%",
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
+    shadowOpacity: 0.04,
     shadowRadius: 4,
     elevation: 1,
   },
@@ -138,35 +211,29 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   exportButtonText: {
-    color: "#2B6CB0",
-    fontSize: 16,
+    color: "#334155",
+    fontSize: 15,
     fontWeight: "600",
   },
   logoutButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    marginTop: 16,
-    backgroundColor: "#FFF5F5",
+    marginTop: 12,
+    backgroundColor: "#FEF2F2",
     borderWidth: 1,
-    borderColor: "#FFCDD2",
-    borderRadius: 12,
-    paddingVertical: 12,
+    borderColor: "#FEE2E2",
+    borderRadius: 16,
+    paddingVertical: 14,
     paddingHorizontal: 24,
-    width: "90%",
-    maxWidth: 300,
-    shadowColor: "#E53935",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 1,
+    width: "100%",
   },
   logoutIcon: {
     marginRight: 8,
   },
   logoutButtonText: {
-    color: "#E53935",
-    fontSize: 16,
+    color: "#EF4444",
+    fontSize: 15,
     fontWeight: "600",
   },
 });

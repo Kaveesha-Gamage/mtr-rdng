@@ -1,4 +1,4 @@
-import { Calendar, Clock } from "lucide-react-native";
+import { Calendar, Clock, ArrowRight } from "lucide-react-native";
 import { router } from "expo-router";
 import React from "react";
 import { Dimensions, StyleSheet, Text, View, TouchableOpacity } from "react-native";
@@ -15,13 +15,13 @@ interface MeterReadingDashboardProps {
 }
 
 export default function MeterReadingDashboard({
-  totalCustomers = 461,
+  totalCustomers = 0,
   receivedCount = 0,
-  pendingCount = 461,
+  pendingCount = 0,
 }: MeterReadingDashboardProps) {
   // Chart configurations
   const size = CONTAINER_WIDTH * 0.65;
-  const strokeWidth = 32;
+  const strokeWidth = 26;
   const radius = (size - strokeWidth) / 2;
   const circumference = radius * 2 * Math.PI;
 
@@ -43,25 +43,18 @@ export default function MeterReadingDashboard({
 
   return (
     <View style={styles.cardContainer}>
-      {/* Header Titles */}
-      <Text style={styles.mainTitle}>METER READING STATUS</Text>
-      <TouchableOpacity
-        style={styles.badge}
-        onPress={() => router.push("/pending-readings")}
-        activeOpacity={0.7}
-      >
-        <Text style={styles.badgeText}>PENDING READINGS</Text>
-      </TouchableOpacity>
-
+      {/* Header Title */}
+      <Text style={styles.mainTitle}>METER READING PROGRESS</Text>
+      
       {/* Donut Chart Component */}
       <View style={styles.chartContainer}>
         <Svg width={size} height={size}>
-          {/* Background Circle */}
+          {/* Background Circle (Completed / Reading Taken) */}
           <Circle
             cx={size / 2}
             cy={size / 2}
             r={radius}
-            stroke="#F2F2F2"
+            stroke="#1062FE"
             strokeWidth={strokeWidth}
             fill="transparent"
           />
@@ -70,7 +63,7 @@ export default function MeterReadingDashboard({
             cx={size / 2}
             cy={size / 2}
             r={radius}
-            stroke="#FF5722"
+            stroke="#FF7A00"
             strokeWidth={strokeWidth}
             strokeDasharray={circumference}
             strokeDashoffset={strokeDashoffset}
@@ -83,7 +76,7 @@ export default function MeterReadingDashboard({
         {/* Centered Text inside Donut Chart */}
         <View style={styles.chartCenterTextContainer}>
           <Text style={styles.centerNumber}>{totalCustomers}</Text>
-          <Text style={styles.centerLabel}>Total Customers</Text>
+          <Text style={styles.centerLabel}>Total Accounts</Text>
         </View>
       </View>
 
@@ -92,8 +85,8 @@ export default function MeterReadingDashboard({
         {/* Left Legend: Received */}
         <View style={styles.legendItem}>
           <View style={styles.legendHeader}>
-            <View style={[styles.dot, { backgroundColor: "#4CAF50" }]} />
-            <Text style={styles.legendTitle}>Reading Taken</Text>
+            <View style={[styles.dot, { backgroundColor: "#1062FE" }]} />
+            <Text style={styles.legendTitle}>Readings Taken</Text>
           </View>
           <Text style={styles.legendData}>
             {receivedCount}{" "}
@@ -104,8 +97,8 @@ export default function MeterReadingDashboard({
         {/* Right Legend: Not Received */}
         <View style={styles.legendItem}>
           <View style={styles.legendHeader}>
-            <View style={[styles.dot, { backgroundColor: "#FF5722" }]} />
-            <Text style={styles.legendTitle}>Reading Not{"\n"}Taken</Text>
+            <View style={[styles.dot, { backgroundColor: "#FF7A00" }]} />
+            <Text style={styles.legendTitle}>Readings Pending</Text>
           </View>
           <Text style={styles.legendData}>
             {pendingCount}{" "}
@@ -114,37 +107,15 @@ export default function MeterReadingDashboard({
         </View>
       </View>
 
-      {/* Bottom Status Grid Panel */}
-      <View style={styles.bottomPanel}>
-        {/* Received Section */}
-        <View style={styles.panelSplit}>
-          <View style={[styles.iconCircle, { borderColor: "#E8F5E9" }]}>
-            <Clock size={22} color="#4CAF50" />
-          </View>
-          <View style={styles.panelTextContainer}>
-            <Text style={styles.panelLabel}>RECEIVED</Text>
-            <Text style={[styles.panelValue, { color: "#4CAF50" }]}>
-              {receivedCount}
-            </Text>
-          </View>
-        </View>
-
-        {/* Vertical Divider Line */}
-        <View style={styles.verticalDivider} />
-
-        {/* Pending Section */}
-        <View style={styles.panelSplit}>
-          <View style={[styles.iconCircle, { borderColor: "#FFEBEE" }]}>
-            <Calendar size={22} color="#E53935" />
-          </View>
-          <View style={styles.panelTextContainer}>
-            <Text style={styles.panelLabel}>PENDING</Text>
-            <Text style={[styles.panelValue, { color: "#E53935" }]}>
-              {pendingCount}
-            </Text>
-          </View>
-        </View>
-      </View>
+      {/* View List Navigation Badge */}
+      <TouchableOpacity
+        style={styles.actionButton}
+        onPress={() => router.push("/pending-readings")}
+        activeOpacity={0.8}
+      >
+        <Text style={styles.actionButtonText}>View Pending Readings List</Text>
+        <ArrowRight size={16} color="white" />
+      </TouchableOpacity>
     </View>
   );
 }
@@ -157,36 +128,25 @@ const styles = StyleSheet.create({
     padding: 20,
     alignItems: "center",
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.06,
-    shadowRadius: 16,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 12,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: "#F0F0F0",
   },
   mainTitle: {
-    fontSize: 18,
+    fontSize: 14,
     fontWeight: "800",
-    color: "#263238",
-    letterSpacing: 0.5,
-    marginBottom: 12,
-  },
-  badge: {
-    backgroundColor: "#7A0000",
-    paddingVertical: 10,
-    paddingHorizontal: 40,
-    borderRadius: 25,
-    marginBottom: 25,
-  },
-  badgeText: {
-    color: "#FFD700",
-    fontWeight: "bold",
-    fontSize: 15,
-    letterSpacing: 0.5,
+    color: "#64748B",
+    letterSpacing: 1,
+    marginBottom: 20,
   },
   chartContainer: {
     position: "relative",
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 30,
+    marginBottom: 24,
   },
   chartCenterTextContainer: {
     position: "absolute",
@@ -194,95 +154,71 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   centerNumber: {
-    fontSize: 38,
+    fontSize: 34,
     fontWeight: "800",
-    color: "#212832",
+    color: "#1E293B",
   },
   centerLabel: {
-    fontSize: 13,
-    color: "#7C8794",
+    fontSize: 12,
+    color: "#64748B",
     marginTop: 2,
-    fontWeight: "500",
+    fontWeight: "600",
   },
   legendContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
     width: "100%",
-    paddingHorizontal: 5,
-    marginBottom: 35,
+    paddingHorizontal: 8,
+    marginBottom: 24,
   },
   legendItem: {
     flex: 1,
   },
   legendHeader: {
     flexDirection: "row",
-    alignItems: "flex-start",
-    marginBottom: 8,
+    alignItems: "center",
+    marginBottom: 6,
   },
   dot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    marginTop: 4,
-    marginRight: 8,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    marginRight: 6,
   },
   legendTitle: {
-    fontSize: 14,
-    color: "#5A6776",
-    fontWeight: "500",
-    lineHeight: 18,
+    fontSize: 13,
+    color: "#475569",
+    fontWeight: "600",
   },
   legendData: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#212832",
-    paddingLeft: 20,
+    color: "#1E293B",
+    paddingLeft: 16,
   },
   percentageText: {
-    color: "#8A94A6",
-    fontWeight: "400",
+    color: "#94A3B8",
+    fontWeight: "500",
+    fontSize: 12,
   },
-  bottomPanel: {
+  actionButton: {
+    backgroundColor: "#8B0000",
     flexDirection: "row",
-    backgroundColor: "#F8FAFC",
-    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
     paddingVertical: 14,
-    paddingHorizontal: 12,
-    alignItems: "center",
+    borderRadius: 12,
     width: "100%",
+    shadowColor: "#8B0000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 2,
   },
-  panelSplit: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  iconCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    borderWidth: 1.5,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#FFFFFF",
-  },
-  panelTextContainer: {
-    marginLeft: 12,
-  },
-  panelLabel: {
-    fontSize: 11,
+  actionButtonText: {
+    color: "#FFFFFF",
     fontWeight: "700",
-    color: "#64748B",
-    letterSpacing: 0.5,
-  },
-  panelValue: {
-    fontSize: 18,
-    fontWeight: "800",
-    marginTop: 1,
-  },
-  verticalDivider: {
-    width: 1,
-    height: "70%",
-    backgroundColor: "#E2E8F0",
+    fontSize: 14,
+    marginRight: 8,
   },
 });
