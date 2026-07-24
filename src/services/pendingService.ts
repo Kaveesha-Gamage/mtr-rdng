@@ -135,6 +135,11 @@ const mapToPendingReading = (
     currentReading: item.currentReading,
     remarks: item.remarks,
     syncStatus: item.syncStatus,
+    r1: item.r1 ?? item.r_1 ?? null,
+    r2: item.r2 ?? item.r_2 ?? null,
+    r3: item.r3 ?? item.r_3 ?? null,
+    kva: item.kva ?? item.kva_val ?? null,
+    kvah: item.kvah ?? item.kvah_val ?? null,
   };
 };
 

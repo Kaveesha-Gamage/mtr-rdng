@@ -8,6 +8,7 @@ import {
   View,
 } from "react-native";
 import Svg, { Circle } from "react-native-svg";
+import { ArrowRight } from "lucide-react-native";
 
 const { width } = Dimensions.get("window");
 const CARD_PADDING = 24;

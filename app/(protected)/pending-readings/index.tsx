@@ -1,17 +1,19 @@
-import React, { useEffect, useState, useCallback } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  TextInput,
-  FlatList,
-  TouchableOpacity,
-  ActivityIndicator,
-  ScrollView,
-} from "react-native";
-import { Picker } from "@react-native-picker/picker";
 import { Ionicons } from "@expo/vector-icons";
+import { Picker } from "@react-native-picker/picker";
+import { useIsFocused } from "@react-navigation/native";
+import { router } from "expo-router";
+import React, { useCallback, useEffect, useState } from "react";
+import {
+  ActivityIndicator,
+  FlatList,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
+} from "react-native";
 
+import { getPendingReadingsFromDB } from "../../../src/database/pendingRepository";
 import { downloadPendingReadings } from "../../../src/services/pendingService";
 import { PendingReading } from "../../../src/types/PendingReading";
 
@@ -29,9 +31,24 @@ export default function PendingReadings() {
   const [netType, setNetType] = useState("All");
   const [show, setShow] = useState("10");
 
+  const isFocused = useIsFocused();
+
   useEffect(() => {
-    loadPendingReadings();
-  }, []);
+    if (isFocused) {
+      try {
+        const dbReadings = getPendingReadingsFromDB();
+        if (dbReadings.length > 0) {
+          setCustomers(dbReadings);
+          setLoading(false);
+        } else {
+          loadPendingReadings();
+        }
+      } catch (err) {
+        console.error("Failed to load pending readings on focus:", err);
+        loadPendingReadings();
+      }
+    }
+  }, [isFocused]);
 
   const filterCustomers = useCallback(() => {
     let data = [...customers];
@@ -83,6 +100,14 @@ export default function PendingReadings() {
     try {
       setLoading(true);
       setError(null);
+
+      // Check SQLite first
+      const dbReadings = getPendingReadingsFromDB();
+      if (dbReadings.length > 0) {
+        setCustomers(dbReadings);
+        setLoading(false);
+        return;
+      }
 
       const response = await downloadPendingReadings();
 
@@ -195,25 +220,27 @@ export default function PendingReadings() {
           const badgeStyle = isMetering
             ? styles.badgeBlue
             : isPlus
-            ? styles.badgePurple
-            : isAccounting
-            ? styles.badgeOrange
-            : styles.badgeGray;
+              ? styles.badgePurple
+              : isAccounting
+                ? styles.badgeOrange
+                : styles.badgeGray;
 
           const badgeTextStyle = isMetering
             ? styles.badgeTextBlue
             : isPlus
-            ? styles.badgeTextPurple
-            : isAccounting
-            ? styles.badgeTextOrange
-            : styles.badgeTextGray;
+              ? styles.badgeTextPurple
+              : isAccounting
+                ? styles.badgeTextOrange
+                : styles.badgeTextGray;
+
+          const isCompleted = item.r1 !== null && item.r1 !== undefined;
 
           return (
-            <View style={styles.card}>
+            <View style={[styles.card, isCompleted && styles.completedCard]}>
               {/* Top Row: Account Number & Net Type Badge */}
               <View style={styles.cardTopRow}>
                 <View style={styles.accountContainer}>
-                  <Ionicons name="flash-outline" size={16} color="#8B0000" style={{ marginRight: 5 }} />
+                  <Ionicons name="flash-outline" size={16} color={isCompleted ? "#1062FE" : "#8B0000"} style={{ marginRight: 5 }} />
                   <Text style={styles.accountNumberText}>{item.accountNumber}</Text>
                 </View>
 
@@ -233,11 +260,29 @@ export default function PendingReadings() {
                   {item.readerCode ? (
                     <Text style={styles.metaText}>Reader: {item.readerCode}</Text>
                   ) : null}
+                  {isCompleted ? (
+                    <View style={styles.completedBadge}>
+                      <Ionicons name="checkmark-circle" size={12} color="#1062FE" style={{ marginRight: 4 }} />
+                      <Text style={styles.completedBadgeText}>Completed</Text>
+                    </View>
+                  ) : null}
                 </View>
 
-                <TouchableOpacity style={styles.button} activeOpacity={0.8}>
-                  <Ionicons name="add-circle" color="white" size={16} />
-                  <Text style={styles.buttonText}>Insert Reading</Text>
+                <TouchableOpacity
+                  style={[styles.button, isCompleted && styles.completedButton]}
+                  activeOpacity={0.8}
+                  onPress={() =>
+                    router.push({
+                      pathname: "/insert-reading" as any,
+                      params: {
+                        accountNumber: item.accountNumber,
+                        installationId: item.installationId,
+                      },
+                    })
+                  }
+                >
+                  <Ionicons name={isCompleted ? "create-outline" : "add-circle"} color="white" size={16} />
+                  <Text style={styles.buttonText}>{isCompleted ? "Edit Reading" : "Insert Reading"}</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -409,6 +454,31 @@ const styles = StyleSheet.create({
     marginLeft: 5,
     fontWeight: "600",
     fontSize: 13,
+  },
+
+  completedCard: {
+    borderColor: "#1062FE",
+    backgroundColor: "#F0F6FF",
+  },
+
+  completedBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#E2EFFF",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    marginLeft: 8,
+  },
+
+  completedBadgeText: {
+    fontSize: 10,
+    color: "#1062FE",
+    fontWeight: "700",
+  },
+
+  completedButton: {
+    backgroundColor: "#1062FE",
   },
 
   emptyText: {

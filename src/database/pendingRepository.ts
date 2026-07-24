@@ -1,5 +1,5 @@
-import db from "./db";
 import { PendingReading } from "../types/PendingReading";
+import db from "./db";
 
 /**
  * Saves a list of pending readings downloaded from the API into SQLite.
@@ -13,8 +13,9 @@ export const savePendingReadings = (readings: PendingReading[]): void => {
       accountNumber, installationId, customerName, tariff, readerCode, dailyPack, walkOrder,
       currentBillCycle, billCycleDate, areaCode, areaName, customerCategory,
       customerType, netType, netTypeName, readingDate, previousReadingDate,
-      numberOfDays, meterSequence, bfBalance, vatApplicable, totalMeters
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      numberOfDays, meterSequence, bfBalance, vatApplicable, totalMeters,
+      r1, r2, r3, kva, kvah
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(accountNumber, installationId) DO UPDATE SET
       customerName = excluded.customerName,
       tariff = excluded.tariff,
@@ -32,7 +33,7 @@ export const savePendingReadings = (readings: PendingReading[]): void => {
       readingDate = COALESCE(pending_readings.readingDate, excluded.readingDate),
       previousReadingDate = excluded.previousReadingDate,
       numberOfDays = excluded.numberOfDays,
-      meterSequence = excluded.meterSequence,
+      meterSequence = COALESCE(pending_readings.meterSequence, excluded.meterSequence),
       bfBalance = excluded.bfBalance,
       vatApplicable = excluded.vatApplicable,
       totalMeters = excluded.totalMeters
@@ -64,6 +65,11 @@ export const savePendingReadings = (readings: PendingReading[]): void => {
           reading.bfBalance,
           reading.vatApplicable,
           reading.totalMeters,
+          reading.r1 ?? null,
+          reading.r2 ?? null,
+          reading.r3 ?? null,
+          reading.kva ?? null,
+          reading.kvah ?? null,
         ]);
       }
     });
@@ -83,7 +89,7 @@ export const getPendingReadingsFromDB = (): PendingReading[] => {
       currentBillCycle, billCycleDate, areaCode, areaName, customerCategory,
       customerType, netType, netTypeName, readingDate, previousReadingDate,
       numberOfDays, meterSequence, bfBalance, vatApplicable, totalMeters,
-      currentReading, remarks, syncStatus
+      currentReading, remarks, syncStatus, r1, r2, r3, kva, kvah
     FROM pending_readings
     ORDER BY CAST(walkOrder AS INTEGER) ASC, accountNumber ASC
   `);
@@ -97,7 +103,7 @@ export const getPendingReadingsCount = () => {
     const result = db.getFirstSync<{ total: number; taken: number }>(`
       SELECT 
         COUNT(*) as total,
-        SUM(CASE WHEN currentReading IS NOT NULL THEN 1 ELSE 0 END) as taken
+        SUM(CASE WHEN r1 IS NOT NULL OR currentReading IS NOT NULL THEN 1 ELSE 0 END) as taken
       FROM pending_readings
     `);
 
@@ -133,6 +139,65 @@ export const updatePendingReading = (
      SET currentReading = ?, remarks = ?, syncStatus = 'PENDING' 
      WHERE accountNumber = ? AND installationId = ?`,
     [currentReading, remarks, accountNumber, installationId]
+  );
+};
+
+/**
+ * Retrieves a single pending reading by Account Number and Installation ID.
+ */
+export const getPendingReading = (
+  accountNumber: string,
+  installationId: string
+): PendingReading | null => {
+  try {
+    return db.getFirstSync<PendingReading>(
+      `SELECT 
+        accountNumber, installationId, customerName, tariff, readerCode, dailyPack, walkOrder,
+        currentBillCycle, billCycleDate, areaCode, areaName, customerCategory,
+        customerType, netType, netTypeName, readingDate, previousReadingDate,
+        numberOfDays, meterSequence, bfBalance, vatApplicable, totalMeters,
+        currentReading, remarks, syncStatus, r1, r2, r3, kva, kvah
+      FROM pending_readings 
+      WHERE accountNumber = ? AND installationId = ?`,
+      [accountNumber, installationId]
+    );
+  } catch (error) {
+    console.error("Failed to query single pending reading:", error);
+    return null;
+  }
+};
+
+/**
+ * Persists the manual meter readings for a customer.
+ */
+export const saveMeterReading = (
+  accountNumber: string,
+  installationId: string,
+  readings: {
+    r1: number | null;
+    r2: number | null;
+    r3: number | null;
+    kva: number | null;
+    kvah: number | null;
+    readingDate: string | null;
+    meterSequence: number | null;
+  }
+): void => {
+  db.runSync(
+    `UPDATE pending_readings 
+     SET r1 = ?, r2 = ?, r3 = ?, kva = ?, kvah = ?, readingDate = ?, meterSequence = ?, syncStatus = 'PENDING' 
+     WHERE accountNumber = ? AND installationId = ?`,
+    [
+      readings.r1,
+      readings.r2,
+      readings.r3,
+      readings.kva,
+      readings.kvah,
+      readings.readingDate,
+      readings.meterSequence,
+      accountNumber,
+      installationId,
+    ]
   );
 };
 
