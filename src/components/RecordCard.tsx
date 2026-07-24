@@ -1,80 +1,48 @@
-import {
-View,
-Text,
-Button
-} from 'react-native';
+import { Button, Text, View } from "react-native";
 
-import db from '../database/db';
+import db from "../database/db";
 
-export default function RecordCard({
-record,
-navigation
-}:any){
+export default function RecordCard({ record, navigation }: any) {
+  const deleteRecord = () => {
+    db.runSync("DELETE FROM bills WHERE id=?", [record.id]);
 
-const deleteRecord=()=>{
+    navigation.goBack();
+  };
 
-db.runSync(
-'DELETE FROM bills WHERE id=?',
-[
-record.id
-]
-);
+  return (
+    <View
+      style={{
+        padding: 15,
+        marginVertical: 10,
+        borderWidth: 1,
+      }}
+    >
+      <Text>
+        Acc:
+        {record.accNumber}
+      </Text>
 
-navigation.goBack();
+      <Text>
+        Due:
+        {record.dueBill}
+      </Text>
 
-};
+      <Text>
+        Previous:
+        {record.previousReading}
+      </Text>
 
-return(
+      <Text>
+        Current:
+        {record.currentReading}
+      </Text>
 
-<View
-style={{
-padding:15,
-marginVertical:10,
-borderWidth:1
-}}
->
+      <Button
+        title="Edit"
+        onPress={() => navigation.navigate("Edit", record)}
+      />
 
-<Text>
-Acc:
-{record.accNumber}
-</Text>
-
-<Text>
-Due:
-{record.dueBill}
-</Text>
-
-<Text>
-Previous:
-{record.previousReading}
-</Text>
-
-<Text>
-Current:
-{record.currentReading}
-</Text>
-
-<Button
-title="Edit"
-onPress={()=>
-
-navigation.navigate(
-'Edit',
-record
-)
-
-}
-/>
-
-<Button
-title="Delete"
-onPress={
-deleteRecord
-}
-/>
-
-</View>
-
-);
-
+      <Button title="Delete" onPress={deleteRecord} />
+    </View>
+  );
 }

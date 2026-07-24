@@ -26,4 +26,9 @@ export interface PendingReading {
   currentReading?: number;
   remarks?: string;
   syncStatus?: "PENDING" | "SYNCED";
+  r1?: number;
+  r2?: number;
+  r3?: number;
+  kva?: number;
+  kvah?: number;
 }

@@ -16,7 +16,7 @@ export const initDatabase = () => {
 
   // 2. Detect stale schema for pending_readings (drop if column structure is outdated)
   try {
-    db.execSync(`SELECT accountNumber, customerName FROM pending_readings LIMIT 0;`);
+    db.execSync(`SELECT accountNumber, customerName, r1 FROM pending_readings LIMIT 0;`);
   } catch (error) {
     console.log("Stale pending_readings table detected, dropping to apply update:", error);
     try {
@@ -54,6 +54,11 @@ export const initDatabase = () => {
       currentReading INTEGER,
       remarks TEXT,
       syncStatus TEXT DEFAULT 'PENDING',
+      r1 REAL,
+      r2 REAL,
+      r3 REAL,
+      kva REAL,
+      kvah REAL,
       PRIMARY KEY (accountNumber, installationId)
     );
   `);
