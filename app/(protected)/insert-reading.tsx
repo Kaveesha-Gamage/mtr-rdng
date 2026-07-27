@@ -16,14 +16,26 @@ import {
   View,
 } from "react-native";
 
-import { getPendingReading, saveMeterReading } from "../../src/database/pendingRepository";
+import { getPendingReading, saveMeterReading, updatePendingReading } from "../../src/database/pendingRepository";
 import { PendingReading } from "../../src/types/PendingReading";
 
 export default function InsertReadingScreen() {
-  const { accountNumber, installationId } = useLocalSearchParams<{
+  const params = useLocalSearchParams<{
     accountNumber: string;
     installationId: string;
   }>();
+
+  const accountNumber = typeof params.accountNumber === "string"
+    ? params.accountNumber
+    : Array.isArray(params.accountNumber)
+      ? params.accountNumber[0]
+      : "";
+
+  const installationId = typeof params.installationId === "string"
+    ? params.installationId
+    : Array.isArray(params.installationId)
+      ? params.installationId[0]
+      : "";
 
   const [customer, setCustomer] = useState<PendingReading | null>(null);
 
@@ -35,6 +47,8 @@ export default function InsertReadingScreen() {
   const [kvah, setKvah] = useState("");
   const [readingDate, setReadingDate] = useState("");
   const [meterSequence, setMeterSequence] = useState("");
+  const [currentReading, setCurrentReading] = useState("");
+  const [remarks, setRemarks] = useState("");
 
   // Input Focus States for Premium Visual Highlight
   const [focusField, setFocusField] = useState<string | null>(null);
@@ -53,6 +67,16 @@ export default function InsertReadingScreen() {
 
   useEffect(() => {
     if (accountNumber && installationId) {
+      // Guard: If customer details are already loaded for the target account,
+      // prevent re-querying SQLite and resetting user input states on every render.
+      if (
+        customer &&
+        String(customer.accountNumber).trim().toLowerCase() === String(accountNumber).trim().toLowerCase() &&
+        String(customer.installationId).trim().toLowerCase() === String(installationId).trim().toLowerCase()
+      ) {
+        return;
+      }
+
       try {
         const record = getPendingReading(accountNumber, installationId);
         if (record) {
@@ -64,6 +88,8 @@ export default function InsertReadingScreen() {
           setKvah(record.kvah !== null && record.kvah !== undefined ? String(record.kvah) : "");
           setReadingDate(record.readingDate || new Date().toISOString().split("T")[0]);
           setMeterSequence(record.meterSequence !== undefined && record.meterSequence !== null ? String(record.meterSequence) : "1");
+          setCurrentReading(record.currentReading !== null && record.currentReading !== undefined ? String(record.currentReading) : "");
+          setRemarks(record.remarks || "");
         } else {
           Alert.alert("Error", "Customer record not found locally.");
         }
@@ -72,7 +98,7 @@ export default function InsertReadingScreen() {
         Alert.alert("Database Error", "Unable to load customer record from SQLite.");
       }
     }
-  }, [accountNumber, installationId]);
+  }, [accountNumber, installationId, customer]);
 
   const triggerHaptic = (type: "light" | "success" | "error") => {
     try {
@@ -88,68 +114,110 @@ export default function InsertReadingScreen() {
     }
   };
 
+  const isSolar = customer ? (
+    (customer.netTypeName || customer.netType || "").toLowerCase().includes("metering") ||
+    (customer.netTypeName || customer.netType || "").toLowerCase().includes("plus") ||
+    (customer.netTypeName || customer.netType || "").toLowerCase().includes("accounting")
+  ) : false;
+
   const handleSave = () => {
-    if (!accountNumber || !installationId) return;
+    if (!accountNumber || !installationId || !customer) return;
 
-    // Numerical parses
-    const valR1 = r1.trim() !== "" ? parseFloat(r1) : null;
-    const valR2 = r2.trim() !== "" ? parseFloat(r2) : null;
-    const valR3 = r3.trim() !== "" ? parseFloat(r3) : null;
-    const valKva = kva.trim() !== "" ? parseFloat(kva) : null;
-    const valKvah = kvah.trim() !== "" ? parseFloat(kvah) : null;
-    const valSeq = meterSequence.trim() !== "" ? parseInt(meterSequence, 10) : null;
+    if (isSolar) {
+      // Numerical parses
+      const valR1 = r1.trim() !== "" ? parseFloat(r1) : null;
+      const valR2 = r2.trim() !== "" ? parseFloat(r2) : null;
+      const valR3 = r3.trim() !== "" ? parseFloat(r3) : null;
+      const valKva = kva.trim() !== "" ? parseFloat(kva) : null;
+      const valKvah = kvah.trim() !== "" ? parseFloat(kvah) : null;
+      const valSeq = meterSequence.trim() !== "" ? parseInt(meterSequence, 10) : null;
 
-    // Field Validations
-    if (valR1 !== null && isNaN(valR1)) {
-      triggerHaptic("error");
-      Alert.alert("Validation Error", "R1 must be a valid number.");
-      return;
-    }
-    if (valR2 !== null && isNaN(valR2)) {
-      triggerHaptic("error");
-      Alert.alert("Validation Error", "R2 must be a valid number.");
-      return;
-    }
-    if (valR3 !== null && isNaN(valR3)) {
-      triggerHaptic("error");
-      Alert.alert("Validation Error", "R3 must be a valid number.");
-      return;
-    }
-    if (valKva !== null && isNaN(valKva)) {
-      triggerHaptic("error");
-      Alert.alert("Validation Error", "KVA must be a valid number.");
-      return;
-    }
-    if (valKvah !== null && isNaN(valKvah)) {
-      triggerHaptic("error");
-      Alert.alert("Validation Error", "KVAH must be a valid number.");
-      return;
-    }
-    if (valSeq !== null && isNaN(valSeq)) {
-      triggerHaptic("error");
-      Alert.alert("Validation Error", "Meter Sequence must be an integer.");
-      return;
-    }
+      // Field Validations
+      if (valR1 !== null && isNaN(valR1)) {
+        triggerHaptic("error");
+        Alert.alert("Validation Error", "R1 must be a valid number.");
+        return;
+      }
+      if (valR2 !== null && isNaN(valR2)) {
+        triggerHaptic("error");
+        Alert.alert("Validation Error", "R2 must be a valid number.");
+        return;
+      }
+      if (valR3 !== null && isNaN(valR3)) {
+        triggerHaptic("error");
+        Alert.alert("Validation Error", "R3 must be a valid number.");
+        return;
+      }
+      if (valKva !== null && isNaN(valKva)) {
+        triggerHaptic("error");
+        Alert.alert("Validation Error", "KVA must be a valid number.");
+        return;
+      }
+      if (valKvah !== null && isNaN(valKvah)) {
+        triggerHaptic("error");
+        Alert.alert("Validation Error", "KVAH must be a valid number.");
+        return;
+      }
+      if (valSeq !== null && isNaN(valSeq)) {
+        triggerHaptic("error");
+        Alert.alert("Validation Error", "Meter Sequence must be an integer.");
+        return;
+      }
 
-    try {
-      saveMeterReading(accountNumber, installationId, {
-        r1: valR1,
-        r2: valR2,
-        r3: valR3,
-        kva: valKva,
-        kvah: valKvah,
-        readingDate: readingDate.trim() || null,
-        meterSequence: valSeq,
-      });
+      try {
+        saveMeterReading(accountNumber, installationId, {
+          r1: valR1,
+          r2: valR2,
+          r3: valR3,
+          kva: valKva,
+          kvah: valKvah,
+          readingDate: readingDate.trim() || null,
+          meterSequence: valSeq,
+        });
 
-      triggerHaptic("success");
-      Alert.alert("Success", "Meter readings saved successfully!", [
-        { text: "OK", onPress: () => router.back() }
-      ]);
-    } catch (error) {
-      console.error("Save reading failed:", error);
-      triggerHaptic("error");
-      Alert.alert("Save Error", "Failed to save the readings to local storage.");
+        triggerHaptic("success");
+        Alert.alert("Success", "Meter readings saved successfully!", [
+          { text: "OK", onPress: () => router.back() }
+        ]);
+      } catch (error) {
+        console.error("Save reading failed:", error);
+        triggerHaptic("error");
+        Alert.alert("Save Error", "Failed to save the readings to local storage.");
+      }
+    } else {
+      // Standard meter save
+      const valCurrent = currentReading.trim() !== "" ? parseFloat(currentReading) : null;
+
+      if (valCurrent === null) {
+        triggerHaptic("error");
+        Alert.alert("Validation Error", "Please enter the current meter reading.");
+        return;
+      }
+
+      if (isNaN(valCurrent)) {
+        triggerHaptic("error");
+        Alert.alert("Validation Error", "Current reading must be a valid number.");
+        return;
+      }
+
+      try {
+        updatePendingReading(
+          accountNumber,
+          installationId,
+          valCurrent,
+          remarks.trim() || null,
+          readingDate.trim() || null
+        );
+
+        triggerHaptic("success");
+        Alert.alert("Success", "Meter reading saved successfully!", [
+          { text: "OK", onPress: () => router.back() }
+        ]);
+      } catch (error) {
+        console.error("Save reading failed:", error);
+        triggerHaptic("error");
+        Alert.alert("Save Error", "Failed to save the reading to local storage.");
+      }
     }
   };
 
@@ -344,90 +412,129 @@ export default function InsertReadingScreen() {
           <Text style={styles.sectionHeader}>ENTER METER READINGS</Text>
 
           <View style={styles.formContainer}>
-            {/* R1 Field */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>R1</Text>
-              <View style={[styles.inputWrapper, focusField === "r1" && styles.inputWrapperFocused]}>
-                <Ionicons name="speedometer-outline" size={20} color={focusField === "r1" ? "#1062FE" : "#94A3B8"} style={styles.inputIcon} />
-                <TextInput
-                  style={styles.textInput}
-                  placeholder="Enter R1 reading"
-                  value={r1}
-                  onChangeText={setR1}
-                  keyboardType="default"
-                  onFocus={() => { setFocusField("r1"); triggerHaptic("light"); }}
-                  onBlur={() => setFocusField(null)}
-                />
-              </View>
-            </View>
+            {isSolar ? (
+              <>
+                {/* R1 Field */}
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>R1</Text>
+                  <View style={[styles.inputWrapper, focusField === "r1" && styles.inputWrapperFocused]}>
+                    <Ionicons name="speedometer-outline" size={20} color={focusField === "r1" ? "#1062FE" : "#94A3B8"} style={styles.inputIcon} />
+                    <TextInput
+                      style={styles.textInput}
+                      placeholder="Enter R1 reading"
+                      value={r1}
+                      onChangeText={setR1}
+                      keyboardType="numeric"
+                      onFocus={() => { setFocusField("r1"); triggerHaptic("light"); }}
+                      onBlur={() => setFocusField(null)}
+                    />
+                  </View>
+                </View>
 
-            {/* R2 Field */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>R2</Text>
-              <View style={[styles.inputWrapper, focusField === "r2" && styles.inputWrapperFocused]}>
-                <Ionicons name="speedometer-outline" size={20} color={focusField === "r2" ? "#1062FE" : "#94A3B8"} style={styles.inputIcon} />
-                <TextInput
-                  style={styles.textInput}
-                  placeholder="Enter R2 reading"
-                  value={r2}
-                  onChangeText={setR2}
-                  keyboardType="default"
-                  onFocus={() => { setFocusField("r2"); triggerHaptic("light"); }}
-                  onBlur={() => setFocusField(null)}
-                />
-              </View>
-            </View>
+                {/* R2 Field */}
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>R2</Text>
+                  <View style={[styles.inputWrapper, focusField === "r2" && styles.inputWrapperFocused]}>
+                    <Ionicons name="speedometer-outline" size={20} color={focusField === "r2" ? "#1062FE" : "#94A3B8"} style={styles.inputIcon} />
+                    <TextInput
+                      style={styles.textInput}
+                      placeholder="Enter R2 reading"
+                      value={r2}
+                      onChangeText={setR2}
+                      keyboardType="numeric"
+                      onFocus={() => { setFocusField("r2"); triggerHaptic("light"); }}
+                      onBlur={() => setFocusField(null)}
+                    />
+                  </View>
+                </View>
 
-            {/* R3 Field */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>R3</Text>
-              <View style={[styles.inputWrapper, focusField === "r3" && styles.inputWrapperFocused]}>
-                <Ionicons name="speedometer-outline" size={20} color={focusField === "r3" ? "#1062FE" : "#94A3B8"} style={styles.inputIcon} />
-                <TextInput
-                  style={styles.textInput}
-                  placeholder="Enter R3 reading"
-                  value={r3}
-                  onChangeText={setR3}
-                  keyboardType="default"
-                  onFocus={() => { setFocusField("r3"); triggerHaptic("light"); }}
-                  onBlur={() => setFocusField(null)}
-                />
-              </View>
-            </View>
+                {/* R3 Field */}
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>R3</Text>
+                  <View style={[styles.inputWrapper, focusField === "r3" && styles.inputWrapperFocused]}>
+                    <Ionicons name="speedometer-outline" size={20} color={focusField === "r3" ? "#1062FE" : "#94A3B8"} style={styles.inputIcon} />
+                    <TextInput
+                      style={styles.textInput}
+                      placeholder="Enter R3 reading"
+                      value={r3}
+                      onChangeText={setR3}
+                      keyboardType="numeric"
+                      onFocus={() => { setFocusField("r3"); triggerHaptic("light"); }}
+                      onBlur={() => setFocusField(null)}
+                    />
+                  </View>
+                </View>
 
-            {/* KVA Field */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>KVA</Text>
-              <View style={[styles.inputWrapper, focusField === "kva" && styles.inputWrapperFocused]}>
-                <Ionicons name="speedometer-outline" size={20} color={focusField === "kva" ? "#1062FE" : "#94A3B8"} style={styles.inputIcon} />
-                <TextInput
-                  style={styles.textInput}
-                  placeholder="Enter KVA"
-                  value={kva}
-                  onChangeText={setKva}
-                  keyboardType="default"
-                  onFocus={() => { setFocusField("kva"); triggerHaptic("light"); }}
-                  onBlur={() => setFocusField(null)}
-                />
-              </View>
-            </View>
+                {/* KVA Field */}
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>KVA</Text>
+                  <View style={[styles.inputWrapper, focusField === "kva" && styles.inputWrapperFocused]}>
+                    <Ionicons name="speedometer-outline" size={20} color={focusField === "kva" ? "#1062FE" : "#94A3B8"} style={styles.inputIcon} />
+                    <TextInput
+                      style={styles.textInput}
+                      placeholder="Enter KVA"
+                      value={kva}
+                      onChangeText={setKva}
+                      keyboardType="numeric"
+                      onFocus={() => { setFocusField("kva"); triggerHaptic("light"); }}
+                      onBlur={() => setFocusField(null)}
+                    />
+                  </View>
+                </View>
 
-            {/* KVAH Field */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>KVAH</Text>
-              <View style={[styles.inputWrapper, focusField === "kvah" && styles.inputWrapperFocused]}>
-                <Ionicons name="speedometer-outline" size={20} color={focusField === "kvah" ? "#1062FE" : "#94A3B8"} style={styles.inputIcon} />
-                <TextInput
-                  style={styles.textInput}
-                  placeholder="Enter KVAH"
-                  value={kvah}
-                  onChangeText={setKvah}
-                  keyboardType="default"
-                  onFocus={() => { setFocusField("kvah"); triggerHaptic("light"); }}
-                  onBlur={() => setFocusField(null)}
-                />
-              </View>
-            </View>
+                {/* KVAH Field */}
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>KVAH</Text>
+                  <View style={[styles.inputWrapper, focusField === "kvah" && styles.inputWrapperFocused]}>
+                    <Ionicons name="speedometer-outline" size={20} color={focusField === "kvah" ? "#1062FE" : "#94A3B8"} style={styles.inputIcon} />
+                    <TextInput
+                      style={styles.textInput}
+                      placeholder="Enter KVAH"
+                      value={kvah}
+                      onChangeText={setKvah}
+                      keyboardType="numeric"
+                      onFocus={() => { setFocusField("kvah"); triggerHaptic("light"); }}
+                      onBlur={() => setFocusField(null)}
+                    />
+                  </View>
+                </View>
+              </>
+            ) : (
+              <>
+                {/* Current Reading Field */}
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>Current Reading</Text>
+                  <View style={[styles.inputWrapper, focusField === "currentReading" && styles.inputWrapperFocused]}>
+                    <Ionicons name="speedometer-outline" size={20} color={focusField === "currentReading" ? "#1062FE" : "#94A3B8"} style={styles.inputIcon} />
+                    <TextInput
+                      style={styles.textInput}
+                      placeholder="Enter current meter reading"
+                      value={currentReading}
+                      onChangeText={setCurrentReading}
+                      keyboardType="numeric"
+                      onFocus={() => { setFocusField("currentReading"); triggerHaptic("light"); }}
+                      onBlur={() => setFocusField(null)}
+                    />
+                  </View>
+                </View>
+
+                {/* Remarks Field */}
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>Remarks / Exceptions (Optional)</Text>
+                  <View style={[styles.inputWrapper, focusField === "remarks" && styles.inputWrapperFocused]}>
+                    <Ionicons name="chatbubble-ellipses-outline" size={20} color={focusField === "remarks" ? "#1062FE" : "#94A3B8"} style={styles.inputIcon} />
+                    <TextInput
+                      style={styles.textInput}
+                      placeholder="Enter remarks or anomalies"
+                      value={remarks}
+                      onChangeText={setRemarks}
+                      onFocus={() => { setFocusField("remarks"); triggerHaptic("light"); }}
+                      onBlur={() => setFocusField(null)}
+                    />
+                  </View>
+                </View>
+              </>
+            )}
 
             {/* Reading Date Field */}
             <View style={styles.inputGroup}>
@@ -450,22 +557,24 @@ export default function InsertReadingScreen() {
               </View>
             </View>
 
-            {/* Meter Sequence Field */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Meter Sequence</Text>
-              <View style={[styles.inputWrapper, focusField === "sequence" && styles.inputWrapperFocused]}>
-                <Ionicons name="list-outline" size={20} color={focusField === "sequence" ? "#1062FE" : "#94A3B8"} style={styles.inputIcon} />
-                <TextInput
-                  style={styles.textInput}
-                  placeholder="Enter sequence order"
-                  value={meterSequence}
-                  onChangeText={setMeterSequence}
-                  keyboardType="default"
-                  onFocus={() => { setFocusField("sequence"); triggerHaptic("light"); }}
-                  onBlur={() => setFocusField(null)}
-                />
+            {/* Meter Sequence Field (Only for Solar / Net type meters) */}
+            {isSolar && (
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Meter Sequence</Text>
+                <View style={[styles.inputWrapper, focusField === "sequence" && styles.inputWrapperFocused]}>
+                  <Ionicons name="list-outline" size={20} color={focusField === "sequence" ? "#1062FE" : "#94A3B8"} style={styles.inputIcon} />
+                  <TextInput
+                    style={styles.textInput}
+                    placeholder="Enter sequence order"
+                    value={meterSequence}
+                    onChangeText={setMeterSequence}
+                    keyboardType="numeric"
+                    onFocus={() => { setFocusField("sequence"); triggerHaptic("light"); }}
+                    onBlur={() => setFocusField(null)}
+                  />
+                </View>
               </View>
-            </View>
+            )}
 
           </View>
 
@@ -598,11 +707,6 @@ const styles = StyleSheet.create({
   inputWrapperFocused: {
     borderColor: "#1062FE",
     backgroundColor: "#FFFFFF",
-    shadowColor: "#1062FE",
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 1,
   },
   inputIcon: {
     marginRight: 8,

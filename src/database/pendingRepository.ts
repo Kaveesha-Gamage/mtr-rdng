@@ -131,14 +131,15 @@ export const getPendingReadingsCount = () => {
 export const updatePendingReading = (
   accountNumber: string,
   installationId: string,
-  currentReading: number,
-  remarks: string
+  currentReading: number | null,
+  remarks: string | null,
+  readingDate: string | null
 ): void => {
   db.runSync(
     `UPDATE pending_readings 
-     SET currentReading = ?, remarks = ?, syncStatus = 'PENDING' 
+     SET currentReading = ?, remarks = ?, readingDate = ?, syncStatus = 'PENDING' 
      WHERE accountNumber = ? AND installationId = ?`,
-    [currentReading, remarks, accountNumber, installationId]
+    [currentReading, remarks, readingDate, accountNumber, installationId]
   );
 };
 

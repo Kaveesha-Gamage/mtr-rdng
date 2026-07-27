@@ -233,7 +233,7 @@ export default function PendingReadings() {
                 ? styles.badgeTextOrange
                 : styles.badgeTextGray;
 
-          const isCompleted = item.r1 !== null && item.r1 !== undefined;
+          const isCompleted = (item.r1 !== null && item.r1 !== undefined) || (item.currentReading !== null && item.currentReading !== undefined);
 
           return (
             <View style={[styles.card, isCompleted && styles.completedCard]}>
