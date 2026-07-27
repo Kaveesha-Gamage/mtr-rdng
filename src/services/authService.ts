@@ -6,6 +6,7 @@ import { saveSession, clearSession } from "../storage/secureStore";
 export const loginService = async (
   data: LoginRequest
 ) => {
+  // Real backend server authentication
   const response = await loginApi(data);
 
   if (response.success) {

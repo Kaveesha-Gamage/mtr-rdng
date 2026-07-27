@@ -1,8 +1,14 @@
-import { Calendar, Clock, ArrowRight } from "lucide-react-native";
 import { router } from "expo-router";
 import React from "react";
-import { Dimensions, StyleSheet, Text, View, TouchableOpacity } from "react-native";
+import {
+  Dimensions,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import Svg, { Circle } from "react-native-svg";
+import { ArrowRight } from "lucide-react-native";
 
 const { width } = Dimensions.get("window");
 const CARD_PADDING = 24;
@@ -45,7 +51,7 @@ export default function MeterReadingDashboard({
     <View style={styles.cardContainer}>
       {/* Header Title */}
       <Text style={styles.mainTitle}>METER READING PROGRESS</Text>
-      
+
       {/* Donut Chart Component */}
       <View style={styles.chartContainer}>
         <Svg width={size} height={size}>
