@@ -1,6 +1,7 @@
 import {createContext,useContext,useEffect,useState,ReactNode,} from "react";
 import { Session } from "../types/Session";
 import {getSession,clearSession,} from "../storage/secureStore";
+import { clearLastSyncTime } from "../storage/syncStore";
 
 interface AuthContextType {
   session: Session | null;
@@ -43,6 +44,7 @@ export function AuthProvider({
 
   const logout = async () => {
     await clearSession();
+    await clearLastSyncTime();
     setSession(null);
   };
 

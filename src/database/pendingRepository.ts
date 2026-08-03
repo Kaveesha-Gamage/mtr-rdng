@@ -89,7 +89,10 @@ export const getPendingReadingsFromDB = (): PendingReading[] => {
       currentBillCycle, billCycleDate, areaCode, areaName, customerCategory,
       customerType, netType, netTypeName, readingDate, previousReadingDate,
       numberOfDays, meterSequence, bfBalance, vatApplicable, totalMeters,
-      currentReading, remarks, syncStatus, r1, r2, r3, kva, kvah
+      currentReading, remarks, syncStatus, r1, r2, r3, kva, kvah,
+      imp_r1, imp_r2, imp_r3, imp_kva, imp_kvah,
+      exp_r1, exp_r2, exp_r3, exp_kva, exp_kvah,
+      imp_exp_r1, imp_exp_r2, imp_exp_r3, imp_exp_kva, imp_exp_kvah
     FROM pending_readings
     ORDER BY CAST(walkOrder AS INTEGER) ASC, accountNumber ASC
   `);
@@ -97,13 +100,17 @@ export const getPendingReadingsFromDB = (): PendingReading[] => {
 
 /**
  * Gets stats of pending readings for dashboard display.
+ * A reading is considered "taken" if any primary reading field is filled.
  */
 export const getPendingReadingsCount = () => {
   try {
     const result = db.getFirstSync<{ total: number; taken: number }>(`
       SELECT 
         COUNT(*) as total,
-        SUM(CASE WHEN r1 IS NOT NULL OR currentReading IS NOT NULL THEN 1 ELSE 0 END) as taken
+        SUM(CASE 
+          WHEN r1 IS NOT NULL OR currentReading IS NOT NULL OR imp_r1 IS NOT NULL 
+          THEN 1 ELSE 0 
+        END) as taken
       FROM pending_readings
     `);
 
@@ -127,6 +134,7 @@ export const getPendingReadingsCount = () => {
 
 /**
  * Updates a pending reading locally when a meter reading is captured.
+ * Used for Normal (single-reading) meter types.
  */
 export const updatePendingReading = (
   accountNumber: string,
@@ -157,7 +165,10 @@ export const getPendingReading = (
         currentBillCycle, billCycleDate, areaCode, areaName, customerCategory,
         customerType, netType, netTypeName, readingDate, previousReadingDate,
         numberOfDays, meterSequence, bfBalance, vatApplicable, totalMeters,
-        currentReading, remarks, syncStatus, r1, r2, r3, kva, kvah
+        currentReading, remarks, syncStatus, r1, r2, r3, kva, kvah,
+        imp_r1, imp_r2, imp_r3, imp_kva, imp_kvah,
+        exp_r1, exp_r2, exp_r3, exp_kva, exp_kvah,
+        imp_exp_r1, imp_exp_r2, imp_exp_r3, imp_exp_kva, imp_exp_kvah
       FROM pending_readings 
       WHERE accountNumber = ? AND installationId = ?`,
       [accountNumber, installationId]
@@ -169,7 +180,8 @@ export const getPendingReading = (
 };
 
 /**
- * Persists the manual meter readings for a customer.
+ * Persists the manual meter readings for a customer (legacy single-sequence).
+ * Kept for backward compatibility with Normal meter types.
  */
 export const saveMeterReading = (
   accountNumber: string,
@@ -196,6 +208,56 @@ export const saveMeterReading = (
       readings.kvah,
       readings.readingDate,
       readings.meterSequence,
+      accountNumber,
+      installationId,
+    ]
+  );
+};
+
+/**
+ * Persists multi-sequence meter readings for net-type customers.
+ * Saves import (seq=1), export (seq=2), and optionally import-in-export (seq=3) readings
+ * as separate flat column groups on the same row.
+ */
+export const saveMultiSequenceReadings = (
+  accountNumber: string,
+  installationId: string,
+  data: {
+    readingDate: string | null;
+    // Import (mtr_seq = 1)
+    imp_r1: number | null;
+    imp_r2: number | null;
+    imp_r3: number | null;
+    imp_kva: number | null;
+    imp_kvah: number | null;
+    // Export (mtr_seq = 2)
+    exp_r1: number | null;
+    exp_r2: number | null;
+    exp_r3: number | null;
+    exp_kva: number | null;
+    exp_kvah: number | null;
+    // Import-in-Export (mtr_seq = 3) — null for types that don't need it
+    imp_exp_r1?: number | null;
+    imp_exp_r2?: number | null;
+    imp_exp_r3?: number | null;
+    imp_exp_kva?: number | null;
+    imp_exp_kvah?: number | null;
+  }
+): void => {
+  db.runSync(
+    `UPDATE pending_readings 
+     SET 
+       imp_r1 = ?, imp_r2 = ?, imp_r3 = ?, imp_kva = ?, imp_kvah = ?,
+       exp_r1 = ?, exp_r2 = ?, exp_r3 = ?, exp_kva = ?, exp_kvah = ?,
+       imp_exp_r1 = ?, imp_exp_r2 = ?, imp_exp_r3 = ?, imp_exp_kva = ?, imp_exp_kvah = ?,
+       readingDate = ?, syncStatus = 'PENDING'
+     WHERE accountNumber = ? AND installationId = ?`,
+    [
+      data.imp_r1, data.imp_r2, data.imp_r3, data.imp_kva, data.imp_kvah,
+      data.exp_r1, data.exp_r2, data.exp_r3, data.exp_kva, data.exp_kvah,
+      data.imp_exp_r1 ?? null, data.imp_exp_r2 ?? null, data.imp_exp_r3 ?? null,
+      data.imp_exp_kva ?? null, data.imp_exp_kvah ?? null,
+      data.readingDate,
       accountNumber,
       installationId,
     ]

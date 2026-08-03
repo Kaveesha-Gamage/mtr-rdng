@@ -62,6 +62,37 @@ export const initDatabase = () => {
       PRIMARY KEY (accountNumber, installationId)
     );
   `);
+
+  // 4. Migrate existing schema: add multi-sequence reading columns if they don't exist yet.
+  //    SQLite does not support "ADD COLUMN IF NOT EXISTS", so we use try/catch per column.
+  const multiSeqColumns = [
+    // Import (mtr_seq = 1)
+    "imp_r1 REAL",
+    "imp_r2 REAL",
+    "imp_r3 REAL",
+    "imp_kva REAL",
+    "imp_kvah REAL",
+    // Export (mtr_seq = 2)
+    "exp_r1 REAL",
+    "exp_r2 REAL",
+    "exp_r3 REAL",
+    "exp_kva REAL",
+    "exp_kvah REAL",
+    // Import-in-Export (mtr_seq = 3) — Net+ only
+    "imp_exp_r1 REAL",
+    "imp_exp_r2 REAL",
+    "imp_exp_r3 REAL",
+    "imp_exp_kva REAL",
+    "imp_exp_kvah REAL",
+  ];
+
+  for (const colDef of multiSeqColumns) {
+    try {
+      db.execSync(`ALTER TABLE pending_readings ADD COLUMN ${colDef};`);
+    } catch (_) {
+      // Column already exists — safe to ignore
+    }
+  }
 };
 
 export default db;

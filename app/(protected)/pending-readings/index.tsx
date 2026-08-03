@@ -14,7 +14,7 @@ import {
 } from "react-native";
 
 import { getPendingReadingsFromDB } from "../../../src/database/pendingRepository";
-import { downloadPendingReadings } from "../../../src/services/pendingService";
+import { downloadPendingReadings, syncIfStale } from "../../../src/services/pendingService";
 import { PendingReading } from "../../../src/types/PendingReading";
 
 export default function PendingReadings() {
@@ -24,6 +24,7 @@ export default function PendingReadings() {
   );
 
   const [loading, setLoading] = useState(true);
+  const [isSyncing, setIsSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const [search, setSearch] = useState("");
@@ -35,18 +36,30 @@ export default function PendingReadings() {
 
   useEffect(() => {
     if (isFocused) {
+      // Step 1: Show whatever is already in SQLite instantly (no spinner).
       try {
         const dbReadings = getPendingReadingsFromDB();
         if (dbReadings.length > 0) {
           setCustomers(dbReadings);
           setLoading(false);
         } else {
+          // Nothing cached yet — fall back to full download.
           loadPendingReadings();
+          return;
         }
       } catch (err) {
-        console.error("Failed to load pending readings on focus:", err);
+        console.error("Failed to read local DB on focus:", err);
         loadPendingReadings();
+        return;
       }
+
+      // Step 2: Silently check whether the cache is stale and merge if needed.
+      setIsSyncing(true);
+      syncIfStale((freshReadings) => {
+        setCustomers(freshReadings);
+      }).finally(() => {
+        setIsSyncing(false);
+      });
     }
   }, [isFocused]);
 
@@ -64,7 +77,15 @@ export default function PendingReadings() {
 
     // 2. Net Type Filter
     if (netType !== "All") {
-      data = data.filter((item) => item.netType === netType);
+      data = data.filter((item) => {
+        const n = (item.netTypeName || item.netType || "").toLowerCase();
+        if (netType === "normal") {
+          return !n.includes("metering") && !n.includes("accounting") && !n.includes("+");
+        }
+        if (netType === "++") return n.includes("+") && (n.includes("++") || n.includes("plus plus"));
+        if (netType === "net+") return n.includes("+") && !n.includes("++") && !n.includes("plus plus");
+        return n.includes(netType);
+      });
     }
 
     // 3. Sorting
@@ -153,6 +174,12 @@ export default function PendingReadings() {
 
       <View style={styles.header}>
         <Text style={styles.headerText}>Pending Readings</Text>
+        {isSyncing && (
+          <View style={styles.syncingBadge}>
+            <ActivityIndicator size="small" color="#FFFFFF" style={{ marginRight: 6 }} />
+            <Text style={styles.syncingText}>Syncing...</Text>
+          </View>
+        )}
       </View>
 
       {/* Search */}
@@ -186,14 +213,12 @@ export default function PendingReadings() {
 
         <View style={styles.pickerContainer}>
           <Picker selectedValue={netType} onValueChange={setNetType}>
-            <Picker.Item
-              label="All Net Types"
-              value="All"
-            />
-            <Picker.Item
-              label="Net Metering"
-              value="1"
-            />
+            <Picker.Item label="All Net Types" value="All" />
+            <Picker.Item label="Normal" value="normal" />
+            <Picker.Item label="Net Metering" value="metering" />
+            <Picker.Item label="Net Accounting" value="accounting" />
+            <Picker.Item label="Net ++" value="++" />
+            <Picker.Item label="Net +" value="net+" />
           </Picker>
         </View>
 
@@ -233,7 +258,10 @@ export default function PendingReadings() {
                 ? styles.badgeTextOrange
                 : styles.badgeTextGray;
 
-          const isCompleted = (item.r1 !== null && item.r1 !== undefined) || (item.currentReading !== null && item.currentReading !== undefined);
+          const isCompleted =
+            (item.r1 !== null && item.r1 !== undefined) ||
+            (item.currentReading !== null && item.currentReading !== undefined) ||
+            (item.imp_r1 !== null && item.imp_r1 !== undefined);
 
           return (
             <View style={[styles.card, isCompleted && styles.completedCard]}>
@@ -277,6 +305,7 @@ export default function PendingReadings() {
                       params: {
                         accountNumber: item.accountNumber,
                         installationId: item.installationId,
+                        netTypeName: item.netTypeName || item.netType || "",
                       },
                     })
                   }
@@ -316,12 +345,30 @@ const styles = StyleSheet.create({
     padding: 18,
     borderRadius: 12,
     marginBottom: 20,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
   },
 
   headerText: {
     color: "white",
     fontSize: 24,
     fontWeight: "bold",
+  },
+
+  syncingBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 20,
+  },
+
+  syncingText: {
+    color: "#FFFFFF",
+    fontSize: 12,
+    fontWeight: "600",
   },
 
   searchBox: {
