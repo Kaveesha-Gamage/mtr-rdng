@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Architecture Documentation - Bulk Meter Reader</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap"
+    rel="stylesheet">
+  <style>
+    :root {
+      --primary: #8B0000;
+      /* Brand Red */
+      --secondary: #D4AF37;
+      /* Gold */
+      --dark: #1E293B;
+      /* Navy Dark */
+      --light-bg: #F8FAFC;
+      --text: #334155;
+      --border: #E2E8F0;
+      --success: #10B981;
+      --warning: #F59E0B;
+      --accent: #0284C7;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      color: var(--text);
+      line-height: 1.6;
+      background-color: #F1F5F9;
+      padding: 40px 20px;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    .report-container {
+      max-width: 900px;
+      margin: 0 auto;
+      background: #ffffff;
+      padding: 60px;
+      border-radius: 16px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
+    }
+
+    .print-instructions {
+      max-width: 900px;
+      margin: 0 auto 20px auto;
+      background: #E0F2FE;
+      color: #0369A1;
+      padding: 15px 20px;
+      border-radius: 10px;
+      border: 1px solid #BAE6FD;
+      font-weight: 500;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .print-btn {
+      background: #0284C7;
+      color: #fff;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 14px;
+      transition: background 0.2s;
+    }
+
+    .print-btn:hover {
+      background: #0369A1;
+    }
+
+    /* Cover / Header Section */
+    .header-section {
+      border-bottom: 2px solid var(--primary);
+      padding-bottom: 25px;
+      margin-bottom: 40px;
+    }
+
+    .title-block h1 {
+      font-size: 26px;
+      font-weight: 800;
+      color: var(--primary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      line-height: 1.2;
+    }
+
+    .title-block p {
+      font-size: 15px;
+      color: var(--dark);
+      font-weight: 600;
+      margin-top: 6px;
+    }
+
+    .meta-block {
+      margin-top: 10px;
+      font-size: 12.5px;
+      color: #64748B;
+    }
+
+    .meta-block strong {
+      color: var(--dark);
+    }
+
+    /* Typography & Sections */
+    h2.section-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--dark);
+      border-left: 5px solid var(--primary);
+      padding-left: 12px;
+      margin: 35px 0 15px 0;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    p.intro-text {
+      font-size: 14.5px;
+      margin-bottom: 20px;
+      color: #475569;
+    }
+
+    ul, ol {
+      margin-left: 24px;
+      margin-bottom: 20px;
+      font-size: 14.5px;
+    }
+
+    li {
+      margin-bottom: 8px;
+    }
+
+    /* Code Blocks */
+    pre, code {
+      font-family: 'JetBrains Mono', 'Courier New', Courier, monospace;
+    }
+
+    code.inline-code {
+      background-color: #F1F5F9;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 13.5px;
+      color: #E11D48;
+    }
+
+    pre.code-block {
+      background-color: #0F172A;
+      color: #F8FAFC;
+      padding: 20px;
+      border-radius: 10px;
+      overflow-x: auto;
+      font-size: 13px;
+      line-height: 1.5;
+      margin: 15px 0 25px 0;
+      border-left: 4px solid var(--secondary);
+    }
+
+    /* Diagrams */
+    .diagram-container {
+      border: 1px solid var(--border);
+      background: var(--light-bg);
+      border-radius: 12px;
+      padding: 30px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin: 25px 0;
+    }
+
+    .diagram-title {
+      font-size: 12px;
+      font-weight: 800;
+      color: var(--dark);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+
+    .diagram-svg {
+      width: 100%;
+      max-width: 720px;
+      height: auto;
+    }
+
+    /* Database Table */
+    table.data-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+      font-size: 14px;
+    }
+
+    table.data-table th,
+    table.data-table td {
+      padding: 10px 14px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+
+    table.data-table th {
+      background-color: var(--light-bg);
+      color: var(--dark);
+      font-weight: 700;
+      font-size: 12.5px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    table.data-table tr:hover {
+      background-color: #F8FAFC;
+    }
+
+    .page-break {
+      page-break-before: always;
+    }
+
+    /* Footer */
+    .report-footer {
+      border-top: 1px solid var(--border);
+      margin-top: 40px;
+      padding-top: 20px;
+      display: flex;
+      justify-content: center;
+      font-size: 11px;
+      color: #94A3B8;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    @media print {
+      body {
+        background-color: #fff;
+        padding: 0;
+        color: #000;
+      }
+
+      .report-container {
+        box-shadow: none;
+        padding: 0;
+        border-radius: 0;
+        max-width: 100%;
+      }
+
+      .print-instructions {
+        display: none;
+      }
+
+      h2.section-title {
+        page-break-after: avoid;
+      }
+
+      table.data-table,
+      .diagram-container,
+      pre.code-block {
+        page-break-inside: avoid;
+      }
+
+      @page {
+        size: A4;
+        margin: 20mm 15mm;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Instruction Banner (Hidden during direct print) -->
+  <div class="print-instructions">
+    <span>💡 <strong>Architecture PDF ready!</strong> Open this file in your browser, press <strong>Ctrl + P</strong> (Windows) or <strong>Cmd + P</strong> (Mac), and select <strong>"Save as PDF"</strong>.</span>
+    <button class="print-btn" onclick="window.print()">Print / Save PDF</button>
+  </div>
+
+  <div class="report-container">
+    <!-- Header Block -->
+    <div class="header-section">
+      <div class="title-block">
+        <h1>Architecture Documentation</h1>
+        <p>Bulk Meter Reading Mobile Application</p>
+      </div>
+      <div class="meta-block">
+        <span>Target Framework: <strong>React Native (Expo SDK 54)</strong></span> &nbsp;•&nbsp;
+        <span>Status: <strong>Active Development</strong></span>
+      </div>
+    </div>
+
+    <!-- Overview -->
+    <p class="intro-text">
+      This document outlines the architecture, layout, data flows, and design patterns of the <strong>Bulk Meter Reading Mobile Application</strong>. The app is engineered to support utility workers performing bulk electricity/water meter readings, with a core focus on <strong>offline-first functionality</strong>, <strong>type-safety</strong>, and <strong>secure session handling</strong>.
+    </p>
+
+    <!-- Core Technology Stack -->
+    <h2 class="section-title">1. Core Technology Stack</h2>
+    <p class="intro-text">The application is built on top of a modern, reactive, and native-optimized stack:</p>
+    <ul>
+      <li><strong>Framework:</strong> React Native (v0.81) via Expo SDK 54 with the New Architecture enabled.</li>
+      <li><strong>Language:</strong> TypeScript (v5.9) for build-time type verification.</li>
+      <li><strong>Routing & Navigation:</strong> Expo Router (v6.0), using file-based routing and folder-grouped structures.</li>
+      <li><strong>Local Offline Database:</strong> SQLite (via <code class="inline-code">expo-sqlite</code>), supporting relational tables for readings, bills, and customers.</li>
+      <li><strong>Secure Cache & Sessions:</strong> Expo SecureStore (<code class="inline-code">expo-secure-store</code>) for encrypted, secure device storage of tokens and login user metadata.</li>
+      <li><strong>Network Client:</strong> Axios client configured with timeout and custom headers for backend communication.</li>
+    </ul>
+
+    <!-- Directory and Folder Layout -->
+    <h2 class="section-title">2. Directory & Folder Layout</h2>
+    <p class="intro-text">The project structure keeps logic, UI components, types, and persistence separate:</p>
+    <pre class="code-block">
+mtr-rdng/
+├── app/                          # Routing & Presentation Layer (Expo Router)
+│   ├── (auth)/                   # Unauthenticated route group
+│   │   ├── _layout.tsx           # Layout wrapper for authentication screens
+│   │   └── index.tsx             # Login Screen (Username & Password inputs)
+│   ├── (protected)/              # Authenticated route group (Guarded)
+│   │   ├── pending-readings/     # Pending Readings Sub-module
+│   │   │   └── index.tsx         # List of customers requiring meter readings
+│   │   ├── _layout.tsx           # Route Guard (Checks AuthContext session)
+│   │   └── dashboard.tsx         # Dashboard displaying statistics
+│   └── _layout.tsx               # Root layout (Initializes AuthProvider & Stack Navigation)
+├── src/                          # Core Codebase Directory
+│   ├── api/                      # Network Layer (Axios Endpoint Interfaces)
+│   │   ├── apiClient.ts          # Axios client instance configuration
+│   │   ├── authApi.ts            # Login API post requests
+│   │   └── pendingApi.ts         # Active readings search and retrieval requests
+│   ├── assets/                   # Static assets (Images, splash icon, logos)
+│   ├── components/               # Shareable View Components
+│   │   └── MeterReadingDashboard.tsx # SVG Donut chart dashboard status widget
+│   ├── constants/                # App-wide constants (URLs, theme, values)
+│   ├── context/                  # State Management Contexts
+│   │   └── AuthContext.tsx       # Authentication session provider and hook
+│   ├── database/                 # Offline Data Storage Layer
+│   │   ├── db.ts                 # SQLite connection and database initializer
+│   │   └── pendingRepository.ts  # CRUD operations for customer readings
+│   ├── services/                 # Business & Orchestration Layer
+│   │   ├── authService.ts        # Coordinates login sequence and storage updates
+│   │   └── pendingService.ts     # Triggers download logic and mapping
+│   ├── storage/                  # Encrypted Key-Value Persistence
+│   │   └── secureStore.ts        # Wraps Expo Secure Store actions
+│   ├── types/                    # TypeScript interfaces and signatures
+│   │   ├── Auth.ts               # Request/Response credentials types
+│   │   ├── PendingReading.ts     # Customer reading model schema
+│   │   └── Session.ts            # Secure state session structure
+│   └── utils/                    # Common helper utilities
+└── package.json                  # Dependencies configuration</pre>
+
+    <div class="page-break"></div>
+
+    <!-- Architectural Layers -->
+    <h2 class="section-title">3. Architectural Layers</h2>
+    <p class="intro-text">
+      The app adheres to a clean, multi-layered architecture to separate concerns, improve testability, and simplify offline synchronization:
+    </p>
+
+    <!-- Layers SVG Diagram -->
+    <div class="diagram-container">
+      <div class="diagram-title">System Architecture Layers</div>
+      <svg class="diagram-svg" viewBox="0 0 720 360" xmlns="http://www.w3.org/2000/svg">
+        <rect width="100%" height="100%" fill="#FAFBFC" rx="10" stroke="#E2E8F0" />
+        
+        <!-- Presentation Layer -->
+        <rect x="30" y="40" width="220" height="70" rx="8" fill="#FEE2E2" stroke="#8B0000" stroke-width="1.5" />
+        <text x="140" y="70" font-family="'Inter', sans-serif" font-size="12" font-weight="700" fill="#8B0000" text-anchor="middle">Presentation Layer</text>
+        <text x="140" y="90" font-family="'Inter', sans-serif" font-size="9.5" fill="#450A0A" text-anchor="middle">Expo Router Views & Components</text>
+
+        <!-- Context & State Layer -->
+        <rect x="30" y="145" width="220" height="70" rx="8" fill="#ECFDF5" stroke="#10B981" stroke-width="1.5" />
+        <text x="140" y="175" font-family="'Inter', sans-serif" font-size="12" font-weight="700" fill="#10B981" text-anchor="middle">State & Context Layer</text>
+        <text x="140" y="195" font-family="'Inter', sans-serif" font-size="9.5" fill="#064E3B" text-anchor="middle">AuthContext & Session Guards</text>
+
+        <!-- Service Layer -->
+        <rect x="290" y="145" width="200" height="70" rx="8" fill="#EFF6FF" stroke="#3B82F6" stroke-width="1.5" />
+        <text x="390" y="175" font-family="'Inter', sans-serif" font-size="12" font-weight="700" fill="#3B82F6" text-anchor="middle">Service Layer</text>
+        <text x="390" y="195" font-family="'Inter', sans-serif" font-size="9.5" fill="#1E3A8A" text-anchor="middle">authService & pendingService</text>
+
+        <!-- Secure Storage -->
+        <rect x="30" y="250" width="220" height="70" rx="8" fill="#F0FDFA" stroke="#14B8A6" stroke-width="1.5" />
+        <text x="140" y="280" font-family="'Inter', sans-serif" font-size="12" font-weight="700" fill="#14B8A6" text-anchor="middle">Secure Storage</text>
+        <text x="140" y="300" font-family="'Inter', sans-serif" font-size="9.5" fill="#042F2E" text-anchor="middle">expo-secure-store API</text>
+
+        <!-- SQLite DB Cache -->
+        <rect x="290" y="250" width="200" height="70" rx="8" fill="#FEF9C3" stroke="#CA8A04" stroke-width="1.5" />
+        <text x="390" y="280" font-family="'Inter', sans-serif" font-size="12" font-weight="700" fill="#CA8A04" text-anchor="middle">SQLite Database Cache</text>
+        <text x="390" y="300" font-family="'Inter', sans-serif" font-size="9.5" fill="#422006" text-anchor="middle">db.ts & pendingRepository</text>
+
+        <!-- Backend REST Server -->
+        <rect x="540" y="120" width="150" height="120" rx="8" fill="#F8FAFC" stroke="#64748B" stroke-width="2" />
+        <text x="615" y="150" font-family="'Inter', sans-serif" font-size="12" font-weight="800" fill="#475569" text-anchor="middle">REMOTE API</text>
+        <text x="615" y="170" font-family="'Inter', sans-serif" font-size="11" font-weight="600" fill="#1E293B" text-anchor="middle">HSB Server</text>
+        <text x="615" y="195" font-family="'Inter', sans-serif" font-size="9.5" fill="#64748B" text-anchor="middle">/secinfo/login</text>
+        <text x="615" y="215" font-family="'Inter', sans-serif" font-size="9.5" fill="#64748B" text-anchor="middle">/pending-meter-readings</text>
+
+        <!-- Connections (Arrows) -->
+        <defs>
+          <marker id="arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#64748B" />
+          </marker>
+        </defs>
+
+        <path d="M 140 110 L 140 145" fill="none" stroke="#64748B" stroke-width="1.5" marker-end="url(#arrow)" />
+        <path d="M 140 215 L 140 250" fill="none" stroke="#64748B" stroke-width="1.5" marker-end="url(#arrow)" />
+        
+        <path d="M 250 80 L 390 80 L 390 145" fill="none" stroke="#64748B" stroke-width="1.5" marker-end="url(#arrow)" />
+        
+        <path d="M 390 215 L 390 250" fill="none" stroke="#64748B" stroke-width="1.5" marker-end="url(#arrow)" />
+        
+        <path d="M 490 180 L 540 180" fill="none" stroke="#3B82F6" stroke-width="1.8" marker-end="url(#arrow)" />
+      </svg>
+    </div>
+
+    <ul>
+      <li><strong>Presentation Layer:</strong> Folder groups <code class="inline-code">(auth)</code> and <code class="inline-code">(protected)</code> segregate guest screens from protected zones. Authentication routing filters access reactive to Context.</li>
+      <li><strong>State & Context Layer:</strong> Managed in <code class="inline-code">AuthContext.tsx</code>, allowing reactive, app-wide access to session metadata. Performs non-blocking SecureStore credentials check on cold starts.</li>
+      <li><strong>Orchestration Layer:</strong> <code class="inline-code">authService.ts</code> validates inputs, formats requests, and manages the secure credentials lifecycle. <code class="inline-code">pendingService.ts</code> handles query coordinates, checking active reader tokens automatically.</li>
+      <li><strong>Data Layer:</strong> Network APIs are structured under <code class="inline-code">src/api</code> returning strongly-typed JSON data. SQLite storage caches network inputs onto physical storage via the repository design pattern, preventing logical pollution in UI code.</li>
+    </ul>
+
+    <div class="page-break"></div>
+
+    <!-- Core Data Flows -->
+    <h2 class="section-title">4. Core Architectural Data Flows</h2>
+    
+    <!-- Flow A SVG -->
+    <div class="diagram-container">
+      <div class="diagram-title">A. Authentication & Secure Storage Loop</div>
+      <svg class="diagram-svg" viewBox="0 0 720 380" xmlns="http://www.w3.org/2000/svg">
+        <rect width="100%" height="100%" fill="#FAFBFC" rx="10" stroke="#E2E8F0" />
+        
+        <!-- Timeline Columns -->
+        <line x1="80" y1="50" x2="80" y2="330" stroke="#CBD5E1" stroke-dasharray="4 4" />
+        <line x1="210" y1="50" x2="210" y2="330" stroke="#CBD5E1" stroke-dasharray="4 4" />
+        <line x1="340" y1="50" x2="340" y2="330" stroke="#CBD5E1" stroke-dasharray="4 4" />
+        <line x1="470" y1="50" x2="470" y2="330" stroke="#CBD5E1" stroke-dasharray="4 4" />
+        <line x1="600" y1="50" x2="600" y2="330" stroke="#CBD5E1" stroke-dasharray="4 4" />
+
+        <!-- Column Headers -->
+        <rect x="30" y="20" width="100" height="30" rx="4" fill="#E2E8F0" />
+        <text x="80" y="38" font-family="'Inter', sans-serif" font-size="10" font-weight="700" fill="#475569" text-anchor="middle">Login UI</text>
+
+        <rect x="160" y="20" width="100" height="30" rx="4" fill="#E2E8F0" />
+        <text x="210" y="38" font-family="'Inter', sans-serif" font-size="10" font-weight="700" fill="#475569" text-anchor="middle">authService</text>
+
+        <rect x="290" y="20" width="100" height="30" rx="4" fill="#E2E8F0" />
+        <text x="340" y="38" font-family="'Inter', sans-serif" font-size="10" font-weight="700" fill="#475569" text-anchor="middle">authApi</text>
+
+        <rect x="420" y="20" width="100" height="30" rx="4" fill="#E2E8F0" />
+        <text x="470" y="38" font-family="'Inter', sans-serif" font-size="10" font-weight="700" fill="#475569" text-anchor="middle">secureStore</text>
+
+        <rect x="550" y="20" width="100" height="30" rx="4" fill="#E2E8F0" />
+        <text x="600" y="38" font-family="'Inter', sans-serif" font-size="10" font-weight="700" fill="#475569" text-anchor="middle">AuthContext</text>
+
+        <!-- Message Lines -->
+        <!-- 1. Enters Credentials -->
+        <path d="M 80 80 L 210 80" fill="none" stroke="#0F172A" stroke-width="1.2" marker-end="url(#arrow)" />
+        <text x="145" y="74" font-family="'Inter', sans-serif" font-size="9" font-weight="600" fill="#475569" text-anchor="middle">1. loginService()</text>
+
+        <!-- 2. Post API -->
+        <path d="M 210 115 L 340 115" fill="none" stroke="#0F172A" stroke-width="1.2" marker-end="url(#arrow)" />
+        <text x="275" y="109" font-family="'Inter', sans-serif" font-size="9" font-weight="600" fill="#475569" text-anchor="middle">2. POST loginApi()</text>
+
+        <!-- 3. Returns Session (Simulated remote response path direct to API) -->
+        <path d="M 340 150 L 210 150" fill="none" stroke="#475569" stroke-width="1.2" stroke-dasharray="2 2" marker-end="url(#arrow)" />
+        <text x="275" y="144" font-family="'Inter', sans-serif" font-size="9" fill="#64748B" text-anchor="middle">3. Session Payload</text>
+
+        <!-- 4. Save Session -->
+        <path d="M 210 190 L 470 190" fill="none" stroke="#0F172A" stroke-width="1.2" marker-end="url(#arrow)" />
+        <text x="340" y="184" font-family="'Inter', sans-serif" font-size="9" font-weight="600" fill="#475569" text-anchor="middle">4. saveSession(Session)</text>
+
+        <!-- 5. Resolve Redirect and trigger refresh -->
+        <path d="M 210 230 L 80 230" fill="none" stroke="#10B981" stroke-width="1.2" marker-end="url(#arrow)" />
+        <text x="145" y="224" font-family="'Inter', sans-serif" font-size="9" font-weight="600" fill="#10B981" text-anchor="middle">5. Redirect /dashboard</text>
+
+        <!-- 6. Context refresh -->
+        <path d="M 80 270 L 600 270" fill="none" stroke="#0F172A" stroke-width="1.2" marker-end="url(#arrow)" />
+        <text x="340" y="264" font-family="'Inter', sans-serif" font-size="9" font-weight="600" fill="#475569" text-anchor="middle">6. refreshSession()</text>
+
+        <!-- 7. Get session from secure storage -->
+        <path d="M 600 300 L 470 300" fill="none" stroke="#0F172A" stroke-width="1.2" marker-end="url(#arrow)" />
+        <text x="535" y="294" font-family="'Inter', sans-serif" font-size="9" font-weight="600" fill="#475569" text-anchor="middle">7. getSession()</text>
+      </svg>
+    </div>
+
+    <!-- Flow B SVG -->
+    <div class="diagram-container">
+      <div class="diagram-title">B. Offline-First Download Pipeline</div>
+      <svg class="diagram-svg" viewBox="0 0 720 280" xmlns="http://www.w3.org/2000/svg">
+        <rect width="100%" height="100%" fill="#FAFBFC" rx="10" stroke="#E2E8F0" />
+
+        <!-- Flow Blocks -->
+        <!-- Start -->
+        <rect x="30" y="115" width="100" height="50" rx="25" fill="#E2E8F0" stroke="#94A3B8" />
+        <text x="80" y="145" font-family="'Inter', sans-serif" font-size="11" font-weight="700" fill="#334155" text-anchor="middle">Open List UI</text>
+
+        <!-- Check Cache Decision -->
+        <polygon points="180,140 240,90 300,140 240,190" fill="#EFF6FF" stroke="#3B82F6" stroke-width="1.5" />
+        <text x="240" y="136" font-family="'Inter', sans-serif" font-size="9.5" font-weight="700" fill="#1E3A8A" text-anchor="middle">Has Local</text>
+        <text x="240" y="149" font-family="'Inter', sans-serif" font-size="9.5" font-weight="700" fill="#1E3A8A" text-anchor="middle">SQLite DB</text>
+        <text x="240" y="162" font-family="'Inter', sans-serif" font-size="9.5" font-weight="700" fill="#1E3A8A" text-anchor="middle">Cache?</text>
+
+        <!-- Render UI (Direct Path) -->
+        <rect x="570" y="115" width="120" height="50" rx="8" fill="#D1FAE5" stroke="#10B981" stroke-width="1.5" />
+        <text x="630" y="140" font-family="'Inter', sans-serif" font-size="11" font-weight="700" fill="#064E3B" text-anchor="middle">Render Listing UI</text>
+
+        <!-- Online check decision -->
+        <polygon points="350,140 400,100 450,140 400,180" fill="#FFFBEB" stroke="#D97706" stroke-width="1.5" />
+        <text x="400" y="138" font-family="'Inter', sans-serif" font-size="9.5" font-weight="700" fill="#78350F" text-anchor="middle">Is Online?</text>
+
+        <!-- Remote Fetch & Write to SQLite Cache -->
+        <rect x="490" y="30" width="130" height="50" rx="8" fill="#ECFDF5" stroke="#059669" stroke-width="1.5" />
+        <text x="555" y="52" font-family="'Inter', sans-serif" font-size="10.5" font-weight="700" fill="#047857" text-anchor="middle">Download API &</text>
+        <text x="555" y="67" font-family="'Inter', sans-serif" font-size="10.5" font-weight="700" fill="#047857" text-anchor="middle">Write Local SQLite</text>
+
+        <!-- Offline Toast Warning -->
+        <rect x="490" y="200" width="130" height="50" rx="8" fill="#FEF2F2" stroke="#EF4444" stroke-width="1.5" />
+        <text x="555" y="222" font-family="'Inter', sans-serif" font-size="10.5" font-weight="700" fill="#991B1B" text-anchor="middle">Offline Warning</text>
+        <text x="555" y="237" font-family="'Inter', sans-serif" font-size="10.5" font-weight="700" fill="#991B1B" text-anchor="middle">Show Cache</text>
+
+        <!-- Connective Lines -->
+        <path d="M 130 140 L 180 140" fill="none" stroke="#64748B" stroke-width="1.5" marker-end="url(#arrow)" />
+        
+        <!-- Yes Path -->
+        <path d="M 240 90 L 240 10 L 630 10 L 630 115" fill="none" stroke="#10B981" stroke-width="1.5" marker-end="url(#arrow)" />
+        <text x="250" y="25" font-family="'Inter', sans-serif" font-size="10" font-weight="700" fill="#10B981">YES</text>
+
+        <!-- No Path -->
+        <path d="M 300 140 L 350 140" fill="none" stroke="#EF4444" stroke-width="1.5" marker-end="url(#arrow)" />
+        <text x="320" y="132" font-family="'Inter', sans-serif" font-size="10" font-weight="700" fill="#EF4444">NO</text>
+
+        <!-- Online YES -->
+        <path d="M 400 100 L 400 55 L 490 55" fill="none" stroke="#10B981" stroke-width="1.5" marker-end="url(#arrow)" />
+        <text x="410" y="70" font-family="'Inter', sans-serif" font-size="10" font-weight="700" fill="#10B981">YES</text>
+
+        <!-- Online NO -->
+        <path d="M 400 180 L 400 225 L 490 225" fill="none" stroke="#EF4444" stroke-width="1.5" marker-end="url(#arrow)" />
+        <text x="410" y="205" font-family="'Inter', sans-serif" font-size="10" font-weight="700" fill="#EF4444">NO</text>
+
+        <!-- Cache Fetch / Download connections back to UI Render -->
+        <path d="M 620 55 L 650 55 L 650 115" fill="none" stroke="#64748B" stroke-width="1.5" marker-end="url(#arrow)" />
+        <path d="M 620 225 L 650 225 L 650 165" fill="none" stroke="#64748B" stroke-width="1.5" marker-end="url(#arrow)" />
+      </svg>
+    </div>
+
+    <div class="page-break"></div>
+
+    <!-- SQLite Schema -->
+    <h2 class="section-title">5. Local SQLite Database Schema</h2>
+    <p class="intro-text">
+      The SQLite local database acts as the single source of truth for all query listings when the application operates offline.
+    </p>
+
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th style="width: 25%;">Column Name</th>
+          <th style="width: 15%;">SQLite Type</th>
+          <th style="width: 20%;">Constraint</th>
+          <th style="width: 40%;">Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>installationId</strong></td>
+          <td>TEXT</td>
+          <td>PRIMARY KEY</td>
+          <td>Unique hardware installation ID</td>
+        </tr>
+        <tr>
+          <td><strong>accountNumber</strong></td>
+          <td>TEXT</td>
+          <td>NOT NULL</td>
+          <td>Utility customer account identifier</td>
+        </tr>
+        <tr>
+          <td><strong>tariff</strong></td>
+          <td>TEXT</td>
+          <td>-</td>
+          <td>Customer tariff billing class</td>
+        </tr>
+        <tr>
+          <td><strong>readerCode</strong></td>
+          <td>TEXT</td>
+          <td>-</td>
+          <td>Identifier mapping of the reader</td>
+        </tr>
+        <tr>
+          <td><strong>dailyPack</strong></td>
+          <td>TEXT</td>
+          <td>-</td>
+          <td>Identifies sub-route assigned bundles</td>
+        </tr>
+        <tr>
+          <td><strong>walkOrder</strong></td>
+          <td>TEXT</td>
+          <td>-</td>
+          <td>Visualized walking sequence for readers</td>
+        </tr>
+        <tr>
+          <td><strong>currentBillCycle</strong></td>
+          <td>TEXT</td>
+          <td>-</td>
+          <td>Associated current billing cycle</td>
+        </tr>
+        <tr>
+          <td><strong>areaCode</strong></td>
+          <td>TEXT</td>
+          <td>-</td>
+          <td>Assigned geographic operations area</td>
+        </tr>
+        <tr>
+          <td><strong>customerCategory</strong></td>
+          <td>TEXT</td>
+          <td>-</td>
+          <td>Billing category (Domestic, Ind, etc)</td>
+        </tr>
+        <tr>
+          <td><strong>previousReadingDate</strong></td>
+          <td>TEXT</td>
+          <td>-</td>
+          <td>Date index of previous billing reading</td>
+        </tr>
+        <tr>
+          <td><strong>vatApplicable</strong></td>
+          <td>TEXT</td>
+          <td>-</td>
+          <td>Identifies taxation class mappings</td>
+        </tr>
+        <tr>
+          <td><strong>currentReading</strong></td>
+          <td>INTEGER</td>
+          <td>NULL</td>
+          <td>Input reading value captured locally</td>
+        </tr>
+        <tr>
+          <td><strong>remarks</strong></td>
+          <td>TEXT</td>
+          <td>NULL</td>
+          <td>Capture exceptions or remarks field</td>
+        </tr>
+        <tr>
+          <td><strong>syncStatus</strong></td>
+          <td>TEXT</td>
+          <td>DEFAULT 'PENDING'</td>
+          <td>Upload tracker: <code class="inline-code">'PENDING'</code> or <code class="inline-code">'SYNCED'</code></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- Report Footer -->
+    <div class="report-footer">
+      <span>Bulk Meter Reading Mobile App System Architecture • Confirmed Version</span>
+    </div>
+  </div>
+
+</body>
+
+</html>
