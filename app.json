@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "BULK METER READER",
-    "slug": "BULK METER READER",
+    "name": "MeterGO",
+    "slug": "metergo",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./src/assets/images/edl-logo.png",
-    "scheme": "BULK METER READER",
+    "scheme": "metergo",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
