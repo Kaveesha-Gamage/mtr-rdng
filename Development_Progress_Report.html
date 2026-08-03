@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Development Progress Report - Bulk Meter Reader</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet">
+  <style>
+    :root {
+      --primary: #8B0000;
+      /* Dark Red, matching the app's brand */
+      --secondary: #D4AF37;
+      /* Gold highlight color */
+      --dark: #2C3E50;
+      --light-bg: #F8FAFC;
+      --text: #334155;
+      --border: #E2E8F0;
+      --success: #1EAF45;
+      --warning: #FF9800;
+      --danger: #EF4444;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      color: var(--text);
+      line-height: 1.6;
+      background-color: #F1F5F9;
+      padding: 40px 20px;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    /* Report Container styled as A4 Pages */
+    .report-container {
+      max-width: 900px;
+      margin: 0 auto;
+      background: #ffffff;
+      padding: 50px;
+      border-radius: 16px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+    }
+
+    /* Print instructions bar */
+    .print-instructions {
+      max-width: 900px;
+      margin: 0 auto 20px auto;
+      background: #E0F2FE;
+      color: #0369A1;
+      padding: 15px 20px;
+      border-radius: 10px;
+      border: 1px solid #BAE6FD;
+      font-weight: 500;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .print-btn {
+      background: #0284C7;
+      color: #fff;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 14px;
+      transition: background 0.2s;
+    }
+
+    .print-btn:hover {
+      background: #0369A1;
+    }
+
+    /* Cover Styling */
+    .header-section {
+      border-bottom: 3px double var(--primary);
+      padding-bottom: 25px;
+      margin-bottom: 35px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+    }
+
+    .title-block h1 {
+      font-size: 28px;
+      font-weight: 800;
+      color: var(--primary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .title-block p {
+      font-size: 16px;
+      color: var(--dark);
+      font-weight: 600;
+      margin-top: 4px;
+    }
+
+    .meta-block {
+      text-align: right;
+      font-size: 13px;
+      color: #64748B;
+    }
+
+    .meta-block strong {
+      color: var(--dark);
+    }
+
+    /* Section Headings */
+    h2.section-title {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--dark);
+      border-left: 5px solid var(--primary);
+      padding-left: 12px;
+      margin: 30px 0 15px 0;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    p.intro-text {
+      font-size: 15px;
+      margin-bottom: 20px;
+      color: #475569;
+    }
+
+    /* Progress Dashboard Cards */
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+
+    .dashboard-card {
+      background: var(--light-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+    }
+
+    .progress-bar-container {
+      background: #E2E8F0;
+      border-radius: 10px;
+      height: 20px;
+      width: 100%;
+      margin: 15px 0;
+      overflow: hidden;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--primary), var(--secondary));
+      border-radius: 10px;
+      transition: width 0.5s ease-out;
+    }
+
+    .dashboard-stat {
+      display: flex;
+      justify-content: space-between;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--dark);
+    }
+
+    .dashboard-stat span.value {
+      font-weight: 800;
+      color: var(--primary);
+    }
+
+    /* Roadmap Table */
+    table.roadmap-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+      font-size: 14px;
+    }
+
+    table.roadmap-table th,
+    table.roadmap-table td {
+      padding: 12px 15px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+
+    table.roadmap-table th {
+      background-color: var(--light-bg);
+      color: var(--dark);
+      font-weight: 700;
+      text-transform: uppercase;
+      font-size: 12px;
+      letter-spacing: 0.5px;
+    }
+
+    table.roadmap-table tr:hover {
+      background-color: #F8FAFC;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      text-align: center;
+    }
+
+    .badge-success {
+      background-color: #DCFCE7;
+      color: #15803D;
+    }
+
+    .badge-warning {
+      background-color: #FEF9C3;
+      color: #A16207;
+    }
+
+    .badge-pending {
+      background-color: #F1F5F9;
+      color: #64748B;
+    }
+
+    /* Tech Checklist */
+    .checklist-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+      margin: 20px 0;
+    }
+
+    .checklist-item {
+      display: flex;
+      align-items: flex-start;
+      background: #FFF;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      font-size: 13.5px;
+    }
+
+    .checklist-icon {
+      margin-right: 12px;
+      font-size: 16px;
+      margin-top: 2px;
+    }
+
+    .checklist-done .checklist-icon {
+      color: var(--success);
+    }
+
+    .checklist-progress .checklist-icon {
+      color: var(--warning);
+    }
+
+    .checklist-pending .checklist-icon {
+      color: #94A3B8;
+    }
+
+    .checklist-item strong {
+      color: var(--dark);
+      display: block;
+      margin-bottom: 2px;
+    }
+
+    /* Architecture Diagram */
+    .diagram-container {
+      border: 1px solid var(--border);
+      background: #FFF;
+      border-radius: 12px;
+      padding: 25px;
+      display: flex;
+      justify-content: center;
+      margin: 20px 0;
+    }
+
+    .diagram-svg {
+      width: 100%;
+      max-width: 750px;
+      height: auto;
+    }
+
+    /* Footer report marking */
+    .report-footer {
+      border-top: 1px solid var(--border);
+      margin-top: 40px;
+      padding-top: 20px;
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      color: #94A3B8;
+    }
+
+    /* Printing styles */
+    @media print {
+      body {
+        background-color: #fff;
+        padding: 0;
+        color: #000;
+      }
+
+      .report-container {
+        box-shadow: none;
+        padding: 0;
+        border-radius: 0;
+        max-width: 100%;
+      }
+
+      .print-instructions {
+        display: none;
+      }
+
+      .page-break {
+        page-break-before: always;
+      }
+
+      h2.section-title {
+        border-left-width: 6px;
+        page-break-after: avoid;
+      }
+
+      table.roadmap-table,
+      .diagram-container,
+      .checklist-item {
+        page-break-inside: avoid;
+      }
+
+      @page {
+        size: A4;
+        margin: 15mm;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Printable Banner (Hidden during direct print) -->
+  <div class="print-instructions no-print">
+    <span>💡 <strong>Supervisor Report ready!</strong> Open this file in your browser, press <strong>Ctrl + P</strong>
+      (Windows) or <strong>Cmd + P</strong> (Mac), and select <strong>"Save as PDF"</strong>.</span>
+    <button class="print-btn" onclick="window.print()">Print / Save PDF</button>
+  </div>
+
+  <div class="report-container">
+    <!-- Header Block -->
+    <div class="header-section" style="justify-content: center; text-align: center;">
+      <div class="title-block" style="width: 100%;">
+        <h1>Bulk Meter Reading - Mobile Application Development</h1>
+      </div>
+    </div>
+
+    <!-- Executive Summary -->
+    <h2 class="section-title">1. Executive Summary</h2>
+    <p class="intro-text">
+      This development progress report outlines the current implementation milestones of the <strong>EDL Bulk Meter
+        Reading Mobile Application</strong>. Designed to transition billing operations from manual paper entry to
+      offline-first synchronization, the application features local secure session authentication and local SQLite
+      caching to perform seamlessly in remote areas. Development is currently focused on <strong>Step 3: Download
+        Pending Readings</strong>.
+    </p>
+
+    <!-- Progress Dashboard -->
+    <div class="dashboard-grid">
+      <div class="dashboard-card">
+        <div class="dashboard-stat">
+          <span>Overall Project Completion</span>
+          <span class="value">40%</span>
+        </div>
+        <div class="progress-bar-container">
+          <div class="progress-bar-fill" style="width: 40%;"></div>
+        </div>
+        <p style="font-size: 12px; color: #64748B; margin-top: 5px;">
+          Phase 1 (Setup) & Phase 2 (Authentication) are fully optimized. Phase 3 is underway.
+        </p>
+      </div>
+
+      <div class="dashboard-card">
+        <div class="dashboard-stat">
+          <span>Roadmap Status</span>
+          <span class="value" style="color: var(--warning);">Step 3 of 6</span>
+        </div>
+        <p style="font-size: 13.5px; color: #475569; margin-top: 15px; font-weight: 500;">
+          Current Focus: Syncing remote API endpoints with the local SQLite data warehouse to allow offline reader
+          capabilities.
+        </p>
+      </div>
+    </div>
+
+    <!-- Roadmap Status Table -->
+    <h2 class="section-title">2. Roadmap Progression</h2>
+    <table class="roadmap-table">
+      <thead>
+        <tr>
+          <th style="width: 10%;">Step</th>
+          <th style="width: 25%;">Milestone</th>
+          <th style="width: 15%;">Status</th>
+          <th style="width: 50%;">Implementation Details</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>1</strong></td>
+          <td>Project Setup</td>
+          <td><span class="badge badge-success">Completed</span></td>
+          <td>Expo SDK 54 initialization, File-based routers, SQLite initialization structure.</td>
+        </tr>
+        <tr>
+          <td><strong>2</strong></td>
+          <td>Authentication</td>
+          <td><span class="badge badge-success">Completed</span></td>
+          <td>API-based sign-in with Secure Store session mapping. Automatic login route guards.</td>
+        </tr>
+        <tr>
+          <td><strong>3</strong></td>
+          <td>Download Pending Readings</td>
+          <td><span class="badge badge-warning">In Progress</span></td>
+          <td>API consumption is ready. Caching and mapping data into SQLite is under development.</td>
+        </tr>
+        <tr>
+          <td><strong>4</strong></td>
+          <td>Reading Capture</td>
+          <td><span class="badge badge-pending">Pending</span></td>
+          <td>UI layout for customer accounts, reading insertion form, and client-side validations.</td>
+        </tr>
+        <tr>
+          <td><strong>5</strong></td>
+          <td>Synchronization</td>
+          <td><span class="badge badge-pending">Pending</span></td>
+          <td>Uploading local records, conflict handling, and marking synchronization statuses.</td>
+        </tr>
+        <tr>
+          <td><strong>6</strong></td>
+          <td>Polish</td>
+          <td><span class="badge badge-pending">Pending</span></td>
+          <td>Network listeners, search queries, pull-to-refresh feeds, and UI enhancement.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="page-break"></div>
+
+    <!-- Architecture & Core Layers -->
+    <h2 class="section-title">3. System Architecture</h2>
+    <p class="intro-text">
+      The application employs a secure, modular model-view-service structure. Secure operations and initial layouts are
+      governed by context hooks. Local operations read/write from a local cache database to maintain full usability
+      during network drops.
+    </p>
+
+    <div class="diagram-container">
+      <svg class="diagram-svg" viewBox="0 0 750 380" xmlns="http://www.w3.org/2000/svg">
+        <!-- Background Grid Style -->
+        <rect width="100%" height="100%" fill="#FAFBFC" rx="10" stroke="#E2E8F0" />
+
+        <!-- Headers -->
+        <text x="375" y="30" text-anchor="middle" font-family="'Inter', sans-serif" font-size="14" font-weight="800"
+          fill="#2C3E50" letter-spacing="1">APPLICATION ARCHITECTURE & DATA FLOW</text>
+
+        <!-- Frontend Client Area -->
+        <rect x="20" y="60" width="340" height="290" rx="8" fill="#FFF" stroke="#CBD5E1" stroke-width="1.5"
+          stroke-dasharray="4 4" />
+        <text x="30" y="80" font-family="'Inter', sans-serif" font-size="11" font-weight="700" fill="#64748B">MOBILE
+          FRONTEND CLIENT (EXPO/REACT NATIVE)</text>
+
+        <!-- UI Component -->
+        <rect x="40" y="100" width="300" height="60" rx="6" fill="#F8FAFC" stroke="#8B0000" stroke-width="1.5" />
+        <text x="50" y="125" font-family="'Inter', sans-serif" font-size="12" font-weight="700" fill="#2C3E50">User
+          Interface Views</text>
+        <text x="50" y="145" font-family="'Inter', sans-serif" font-size="10.5" fill="#64748B">Login Screen • Dashboard
+          Card • Pending List UI</text>
+
+        <!-- Services & Context Component -->
+        <rect x="40" y="185" width="300" height="60" rx="6" fill="#F8FAFC" stroke="#1EAF45" stroke-width="1.5" />
+        <text x="50" y="210" font-family="'Inter', sans-serif" font-size="12" font-weight="700" fill="#2C3E50">Service &
+          Context Providers</text>
+        <text x="50" y="230" font-family="'Inter', sans-serif" font-size="10.5" fill="#64748B">Auth Context • Secure
+          Storage • Pending Services</text>
+
+        <!-- Local DB SQLite Component -->
+        <rect x="40" y="270" width="300" height="65" rx="6" fill="#FEF9C3" stroke="#FBC02D" stroke-width="1.5" />
+        <text x="50" y="295" font-family="'Inter', sans-serif" font-size="12" font-weight="700" fill="#A16207">Local
+          Database Cache (SQLite)</text>
+        <text x="50" y="315" font-family="'Inter', sans-serif" font-size="10.5" fill="#A16207">db.ts •
+          pendingRepository.ts (Active Development)</text>
+
+        <!-- Backend Server Block -->
+        <rect x="450" y="150" width="260" height="110" rx="8" fill="#FFF" stroke="#0284C7" stroke-width="2" />
+        <text x="465" y="175" font-family="'Inter', sans-serif" font-size="12" font-weight="800" fill="#0284C7">REMOTE
+          API BACKEND</text>
+        <text x="465" y="200" font-family="'Inter', sans-serif" font-size="11.5" font-weight="600" fill="#2C3E50">HSB
+          Server (v1 REST API)</text>
+        <text x="465" y="220" font-family="'Inter', sans-serif" font-size="10.5" fill="#64748B">Endpoint: /secinfo/login
+          (Auth)</text>
+        <text x="465" y="240" font-family="'Inter', sans-serif" font-size="10.5" fill="#64748B">Endpoint:
+          /pending-meter-readings/.. (Step 3)</text>
+
+        <!-- Connections (Arrows) -->
+        <!-- UI to Services -->
+        <path d="M 190 160 L 190 185" fill="none" stroke="#64748B" stroke-width="1.5" marker-end="url(#arrow)" />
+        <!-- Services to local DB -->
+        <path d="M 190 245 L 190 270" fill="none" stroke="#64748B" stroke-width="1.5" stroke-dasharray="3 3"
+          marker-end="url(#arrow)" />
+
+        <!-- Services/API to Backend -->
+        <path d="M 340 215 L 442 215" fill="none" stroke="#0284C7" stroke-width="2" marker-end="url(#arrow)" />
+
+        <!-- Arrow Definitions -->
+        <defs>
+          <marker id="arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6"
+            orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#64748B" />
+          </marker>
+        </defs>
+      </svg>
+    </div>
+
+    <!-- Features and Milestones Breakdown -->
+    <h2 class="section-title">4. Technical Implementation Checklist</h2>
+    <div class="checklist-grid">
+      <div class="checklist-item checklist-done">
+        <span class="checklist-icon">✔</span>
+        <div>
+          <strong>Secure Storage Implementation</strong>
+          Integrates `expo-secure-store` to cache and read user credentials locally without plain text leaks.
+        </div>
+      </div>
+
+      <div class="checklist-item checklist-done">
+        <span class="checklist-icon">✔</span>
+        <div>
+          <strong>Authentication Redirection Layouts</strong>
+          Guards the application views. Logged out users are forced to root, while authenticated sessions land on the
+          main dashboard.
+        </div>
+      </div>
+
+      <div class="checklist-item checklist-done">
+        <span class="checklist-icon">✔</span>
+        <div>
+          <strong>Axios API Client Layer</strong>
+          Centralized axios networking client utilizing interceptors and base configurations matching version 1 API
+          expectations.
+        </div>
+      </div>
+
+      <div class="checklist-item checklist-progress">
+        <span class="checklist-icon">⏳</span>
+        <div>
+          <strong>Offline Cache Infrastructure</strong>
+          Structuring repository tables mapping API responses directly to SQLite queries. Currently setting up database
+          migrations.
+        </div>
+      </div>
+
+      <div class="checklist-item checklist-pending">
+        <span class="checklist-icon">○</span>
+        <div>
+          <strong>Meter Reading Validation Rules</strong>
+          Form components with limits enforcing values ensuring current values does not fall lower than previous
+          indices.
+        </div>
+      </div>
+
+      <div class="checklist-item checklist-pending">
+        <span class="checklist-icon">○</span>
+        <div>
+          <strong>Auto Synchronization Scheduler</strong>
+          Service task capturing dirty rows inside local SQLite schema and uploading items to bulk servers when network
+          is up.
+        </div>
+      </div>
+    </div>
+
+    <!-- Next Objectives -->
+    <h2 class="section-title">5. Next Immediate Objectives</h2>
+    <p class="intro-text" style="margin-bottom: 8px;">
+      To successfully pass Step 3 and execute Step 4:
+    </p>
+    <ul style="margin-left: 20px; font-size: 14px; margin-bottom: 30px;">
+      <li style="margin-bottom: 5px;">Define the SQLite schema in `db.ts` to map the downloaded `PendingReading`
+        properties.</li>
+      <li style="margin-bottom: 5px;">Write bulk-insert methods in `pendingRepository.ts` to persist network payloads
+        immediately.</li>
+      <li style="margin-bottom: 5px;">Refactor the Pending Readings Screen to query SQLite first, and add a
+        pull-to-refresh network sync option.</li>
+      <li style="margin-bottom: 5px;">Design Step 4's reading entry input modal with validation logical rules.</li>
+    </ul>
+
+    <!-- Report Footer -->
+    <div class="report-footer" style="justify-content: center;">
+      <span>Bulk Meter Reading - Mobile Application Development</span>
+    </div>
+  </div>
+
+</body>
+
+</html>

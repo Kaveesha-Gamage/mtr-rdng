@@ -1,0 +1,36 @@
+16. Development Roadmap (Recommended Order)
+
+As a beginner, build the app incrementally:
+
+1. Project Setup
+	Create the Expo project.
+	Configure navigation.
+	Set up SQLite.
+2. Authentication
+	Build the login screen.
+	Call the login API.
+	Store the session information securely.
+		
+		1. Define TypeScript models
+		2. Configure Axios
+		3. Create API layer
+		4. Create Secure Storage layer
+		5. Create Authentication Service
+		6. Build Login Screen
+		7. Connect everything together
+
+3. Download Pending Readings
+	Call the pending readings API.
+	Save the response to SQLite.
+	Display the list from SQLite.
+4. Reading Capture
+	Open a customer record.
+	Enter the current meter reading.
+	Validate the input (e.g., current reading should not normally be less than the previous reading unless there's a valid reason).
+	Save the reading locally.
+5. Synchronization
+	Upload unsynced readings.
+	Mark successful uploads as synced.
+	Allow retries for failed uploads.
+6. Polish
+	Add loading indicators, error handling, search, filters, offline detection, and refresh functionality.
