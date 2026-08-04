@@ -239,44 +239,24 @@ export default function InsertReadingScreen() {
 
   // ── Load customer record ──
   useEffect(() => {
-    if (accountNumber && installationId) {
+    if (accountNumber) {
       if (
         customer &&
         String(customer.accountNumber).trim().toLowerCase() ===
-          String(accountNumber).trim().toLowerCase() &&
-        String(customer.installationId).trim().toLowerCase() ===
-          String(installationId).trim().toLowerCase()
+          String(accountNumber).trim().toLowerCase()
       ) {
         return;
       }
 
       try {
-        const record = getPendingReading(accountNumber, installationId);
+        const record = getPendingReading(accountNumber, "");
         if (record) {
           setCustomer(record);
-          setReadingDate(
-            record.readingDate || new Date().toISOString().split("T")[0]
-          );
+          setReadingDate(new Date().toISOString().split("T")[0]);
 
           if (getNetTypeCategory(record.netTypeName || record.netType || "") !== "normal") {
             // Restore multi-sequence values
-            setMeterValues({
-              imp_r1: record.imp_r1 != null ? String(record.imp_r1) : "",
-              imp_r2: record.imp_r2 != null ? String(record.imp_r2) : "",
-              imp_r3: record.imp_r3 != null ? String(record.imp_r3) : "",
-              imp_kva: record.imp_kva != null ? String(record.imp_kva) : "",
-              imp_kvah: record.imp_kvah != null ? String(record.imp_kvah) : "",
-              exp_r1: record.exp_r1 != null ? String(record.exp_r1) : "",
-              exp_r2: record.exp_r2 != null ? String(record.exp_r2) : "",
-              exp_r3: record.exp_r3 != null ? String(record.exp_r3) : "",
-              exp_kva: record.exp_kva != null ? String(record.exp_kva) : "",
-              exp_kvah: record.exp_kvah != null ? String(record.exp_kvah) : "",
-              imp_exp_r1: record.imp_exp_r1 != null ? String(record.imp_exp_r1) : "",
-              imp_exp_r2: record.imp_exp_r2 != null ? String(record.imp_exp_r2) : "",
-              imp_exp_r3: record.imp_exp_r3 != null ? String(record.imp_exp_r3) : "",
-              imp_exp_kva: record.imp_exp_kva != null ? String(record.imp_exp_kva) : "",
-              imp_exp_kvah: record.imp_exp_kvah != null ? String(record.imp_exp_kvah) : "",
-            });
+            setMeterValues({});
           } else {
             // Restore normal reading fields
             setCurrentReading(
@@ -295,7 +275,7 @@ export default function InsertReadingScreen() {
         );
       }
     }
-  }, [accountNumber, installationId, customer]);
+  }, [accountNumber, customer]);
 
   // ── Haptics ──
   const triggerHaptic = (type: "light" | "success" | "error") => {
@@ -326,7 +306,7 @@ export default function InsertReadingScreen() {
 
   // ── Save handler ──
   const handleSave = () => {
-    if (!accountNumber || !installationId || !customer) return;
+    if (!accountNumber || !customer) return;
 
     if (!readingDate.trim()) {
       triggerHaptic("error");
@@ -570,9 +550,9 @@ export default function InsertReadingScreen() {
                 </Text>
               </View>
               <View style={styles.metaCell}>
-                <Text style={styles.metaLabel}>METER NUMBER</Text>
+                <Text style={styles.metaLabel}>BILL CYCLE</Text>
                 <Text style={styles.metaValue} selectable>
-                  {customer.installationId}
+                  {customer.billCycle ?? "N/A"}
                 </Text>
               </View>
               <View style={styles.metaCell}>

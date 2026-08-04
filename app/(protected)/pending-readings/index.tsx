@@ -235,7 +235,7 @@ export default function PendingReadings() {
 
       <FlatList
         data={filteredCustomers}
-        keyExtractor={(item, index) => `${item.accountNumber || ""}-${item.installationId || ""}-${index}`}
+        keyExtractor={(item, index) => `${item.accountNumber || index}-${index}`}
         renderItem={({ item }) => {
           const netTypeName = item.netTypeName || item.netType || "Standard";
           const isMetering = netTypeName.toLowerCase().includes("metering");
@@ -304,7 +304,6 @@ export default function PendingReadings() {
                       pathname: "/insert-reading" as any,
                       params: {
                         accountNumber: item.accountNumber,
-                        installationId: item.installationId,
                         netTypeName: item.netTypeName || item.netType || "",
                       },
                     })

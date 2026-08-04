@@ -82,7 +82,6 @@ const mapToPendingReading = (
   parentAreaName?: string
 ): PendingReading => {
   const accNo = extractAccountNumber(item);
-  const instId = extractInstallationId(item, index);
 
   if (!accNo) {
     console.warn(
@@ -95,53 +94,26 @@ const mapToPendingReading = (
 
   return {
     accountNumber: accNo,
-    installationId: instId,
     customerName: String(
-      item.customerName ??
+      item.name ??
+        item.customerName ??
         item.customer_name ??
         item.cust_name ??
-        item.name ??
-        item.cust_nam ??
         ""
     ).trim(),
-    tariff: String(item.tariff ?? "").trim(),
-    readerCode: String(item.readerCode ?? item.reader_code ?? item.reader_cd ?? "").trim(),
-    dailyPack: String(item.dailyPack ?? item.daily_pack ?? item.daily_pk ?? "").trim(),
-    walkOrder: String(item.walkOrder ?? item.walk_order ?? item.walk_seq ?? item.walk_ord ?? index + 1).trim(),
-    currentBillCycle: String(
-      item.currentBillCycle ??
-        item.current_bill_cycle ??
-        item.active_bill_cycle ??
-        item.bill_cycle ??
-        ""
-    ).trim(),
-    billCycleDate: String(item.billCycleDate ?? item.bill_cycle_date ?? item.bill_date ?? "").trim(),
-    areaCode: String(item.areaCode ?? item.area_code ?? parentAreaCode ?? "").trim(),
-    areaName: String(item.areaName ?? item.area_name ?? parentAreaName ?? "").trim(),
-    customerCategory: String(item.customerCategory ?? item.customer_category ?? item.cust_cat ?? "").trim(),
-    customerType: String(item.customerType ?? item.customer_type ?? item.cust_type ?? "").trim(),
-    netType: String(item.netType ?? item.net_type ?? "").trim(),
-    netTypeName: String(item.netTypeName ?? item.net_type_name ?? item.net_type_desc ?? "").trim(),
-    readingDate:
-      item.readingDate !== undefined
-        ? item.readingDate
-        : (item.reading_date ?? item.rdg_date ?? null),
-    previousReadingDate: String(
-      item.previousReadingDate ?? item.previous_reading_date ?? item.prev_rdg_date ?? ""
-    ).trim(),
-    numberOfDays: Number(item.numberOfDays ?? item.number_of_days ?? item.no_of_days ?? 0),
-    meterSequence: Number(item.meterSequence ?? item.meter_sequence ?? item.meter_seq ?? 0),
-    bfBalance: Number(item.bfBalance ?? item.bf_balance ?? item.bf_bal ?? 0),
-    vatApplicable: String(item.vatApplicable ?? item.vat_applicable ?? item.vat_app ?? "").trim(),
-    totalMeters: Number(item.totalMeters ?? item.total_meters ?? item.tot_meters ?? 0),
+    addressL1: String(item.address_l1 ?? item.addressL1 ?? "").trim() || undefined,
+    areaCode: String(item.area_cd ?? item.areaCode ?? item.area_code ?? parentAreaCode ?? "").trim(),
+    billCycle: item.bill_cycle != null ? Number(item.bill_cycle) : (item.billCycle != null ? Number(item.billCycle) : undefined),
+    tariff: String(item.tariff ?? "").trim() || undefined,
+    mobileNo: String(item.mobile_no ?? item.mobileNo ?? item.mobile ?? "").trim() || undefined,
+    telNbr: item.tel_nbr ?? item.telNbr ?? null,
+    custType: String(item.cust_type ?? item.custType ?? "").trim() || undefined,
+    netType: String(item.net_type ?? item.netType ?? "").trim() || undefined,
+    netTypeName: String(item.net_type_name ?? item.netTypeName ?? "").trim() || undefined,
+    hasReading: item.has_reading ?? item.hasReading ?? false,
     currentReading: item.currentReading,
     remarks: item.remarks,
     syncStatus: item.syncStatus,
-    r1: item.r1 ?? item.r_1 ?? null,
-    r2: item.r2 ?? item.r_2 ?? null,
-    r3: item.r3 ?? item.r_3 ?? null,
-    kva: item.kva ?? item.kva_val ?? null,
-    kvah: item.kvah ?? item.kvah_val ?? null,
   };
 };
 
