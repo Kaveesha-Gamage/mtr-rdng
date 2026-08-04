@@ -7,11 +7,13 @@ import {
 } from "../database/pendingRepository";
 import { PendingReadingResponse } from "../types/PendingReadingResponse";
 import { PendingReading } from "../types/PendingReading";
+import { saveLastSyncTime, getLastSyncTime } from "../storage/syncStore";
 
 /**
- * Defensive mapper that normalises API keys (snake_case, acc_no, inst_id, etc.) into the camelCase
- * properties expected by the TypeScript models and SQLite schema.
+ * How old the local data can be before a background sync is triggered (15 minutes).
  */
+const SYNC_THRESHOLD_MS = 15 * 60 * 1000;
+
 const extractAccountNumber = (item: any): string => {
   if (!item || typeof item !== "object") return "";
 
@@ -210,7 +212,10 @@ export const downloadPendingReadings = async (): Promise<{
     // Step 4: Persist the fresh records.
     savePendingReadings(mappedReadings);
 
-    // Step 5: Read back from SQLite — the UI always renders SQLite data.
+    // Step 5: Record the successful sync timestamp.
+    await saveLastSyncTime();
+
+    // Step 6: Read back from SQLite — the UI always renders SQLite data.
     const localReadings = getPendingReadingsFromDB();
     console.log(`[pendingService] Successfully persisted to SQLite. DB count: ${localReadings.length}`);
 
@@ -236,4 +241,92 @@ export const downloadPendingReadings = async (): Promise<{
       throw error;
     }
   }
-};
+};
+
+/**
+ * Fetches fresh data from the API and **merges** it into the local SQLite database
+ * without clearing existing records. User-entered readings (currentReading, r1, etc.)
+ * are preserved because savePendingReadings uses ON CONFLICT DO UPDATE and only
+ * updates server-owned columns.
+ *
+ * @returns The updated list of pending readings from SQLite, or null on failure.
+ */
+const mergeFromApi = async (): Promise<PendingReading[] | null> => {
+  try {
+    const session = await getSession();
+    if (!session) return null;
+
+    const request = {
+      session_id:     session.sessionId,
+      user_id:        session.userId,
+      area_code:      session.areaCode,
+      bill_cycle:     session.activeBillCycle,
+      account_number: null,
+    };
+
+    console.log("[pendingService] Background sync: fetching from API...");
+    const response = await getPendingReadings(request);
+
+    if (!response || !response.success || !response.pending_readings) {
+      console.warn("[pendingService] Background sync: API returned unsuccessful response.");
+      return null;
+    }
+
+    const parentAreaCode = Array.isArray(response.pending_readings)
+      ? response.area_code
+      : response.pending_readings?.area_code ?? response.area_code;
+    const parentAreaName = Array.isArray(response.pending_readings)
+      ? undefined
+      : response.pending_readings?.area_name;
+
+    const rawReadings = Array.isArray(response.pending_readings)
+      ? response.pending_readings
+      : response.pending_readings?.pending_customers ?? [];
+
+    const mappedReadings = rawReadings.map((item: any, index: number) =>
+      mapToPendingReading(item, index, parentAreaCode, parentAreaName)
+    );
+
+    // Merge (UPSERT) — does NOT wipe user readings.
+    savePendingReadings(mappedReadings);
+
+    // Save the new sync timestamp.
+    await saveLastSyncTime();
+
+    const localReadings = getPendingReadingsFromDB();
+    console.log(`[pendingService] Background sync complete. DB count: ${localReadings.length}`);
+    return localReadings;
+  } catch (error) {
+    console.warn("[pendingService] Background sync failed (network issue?):", error);
+    return null;
+  }
+};
+
+/**
+ * Triggers a background re-sync only when the local data is older than
+ * SYNC_THRESHOLD_MS. Safe to call on every screen focus — it is a no-op
+ * when the cache is still fresh.
+ *
+ * @param onSynced  Callback invoked with the refreshed readings if the sync ran.
+ *                  Not called when the cache is still fresh or on failure.
+ */
+export const syncIfStale = async (
+  onSynced: (readings: PendingReading[]) => void
+): Promise<void> => {
+  const lastSync = await getLastSyncTime();
+  const now = Date.now();
+
+  if (lastSync !== null && now - lastSync < SYNC_THRESHOLD_MS) {
+    const ageMinutes = ((now - lastSync) / 60000).toFixed(1);
+    console.log(`[pendingService] Cache is fresh (${ageMinutes} min old). Skipping sync.`);
+    return;
+  }
+
+  const ageLabel = lastSync === null ? "never synced" : `${((now - lastSync) / 60000).toFixed(1)} min old`;
+  console.log(`[pendingService] Cache is stale (${ageLabel}). Starting background sync...`);
+
+  const freshReadings = await mergeFromApi();
+  if (freshReadings !== null) {
+    onSynced(freshReadings);
+  }
+};
