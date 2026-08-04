@@ -56,8 +56,8 @@ export default function LoginScreen() {
       />
 
       {/* Title */}
-      <Text style={styles.title}>BULK METER READER</Text>
-      <Text style={styles.subtitle}>Bulk Billing System</Text>
+      <Text style={styles.title}>MeterGo</Text>
+      <Text style={styles.subtitle}>Meter Reading Mobile App</Text>
 
       {/* Username Label */}
       <Text style={styles.label}>USER NAME</Text>
