@@ -14,25 +14,25 @@ export const initDatabase = () => {
     );
   `);
 
-  // 2. Detect legacy or stale schema for pending_readings and drop table to apply clean structure
-  try {
-    // Check for legacy columns (e.g. r1, installationId) that should be removed
-    db.execSync(`SELECT r1, installationId FROM pending_readings LIMIT 0;`);
-    console.log("Legacy pending_readings table detected with obsolete columns. Dropping table...");
-    db.execSync(`DROP TABLE IF EXISTS pending_readings;`);
-  } catch (error) {
-    // Expected: legacy columns do not exist
-  }
+  // 2. Detect legacy or stale schema for pending_readings and drop table to apply clean structure if needed
+  const tableCheck = db.getFirstSync<{ count: number }>(
+    `SELECT count(*) as count FROM sqlite_master WHERE type='table' AND name='pending_readings';`
+  );
 
-  try {
-    // Validate that current table contains all required columns
-    db.execSync(`SELECT accountNumber, customerName, addressL1, areaCode, billCycle, tariff, mobileNo, telNbr, custType, netType, netTypeName, hasReading, currentReading, remarks, syncStatus FROM pending_readings LIMIT 0;`);
-  } catch (error) {
-    console.log("Stale pending_readings table structure detected, dropping to apply fresh schema:", error);
+  if (tableCheck && tableCheck.count > 0) {
     try {
+      // Check for obsolete legacy columns
+      db.execSync(`SELECT r1, installationId FROM pending_readings LIMIT 0;`);
+      console.log("Legacy pending_readings table detected with obsolete columns. Dropping table...");
       db.execSync(`DROP TABLE IF EXISTS pending_readings;`);
-    } catch (dropError) {
-      console.error("Failed to drop stale table:", dropError);
+    } catch (error) {
+      // Expected if legacy columns do not exist; now validate current table structure
+      try {
+        db.execSync(`SELECT accountNumber, customerName, addressL1, areaCode, billCycle, tariff, mobileNo, telNbr, custType, netType, netTypeName, hasReading, currentReading, remarks, syncStatus FROM pending_readings LIMIT 0;`);
+      } catch (schemaError) {
+        console.log("Stale pending_readings table structure detected, dropping to apply fresh schema.");
+        db.execSync(`DROP TABLE IF EXISTS pending_readings;`);
+      }
     }
   }
 
