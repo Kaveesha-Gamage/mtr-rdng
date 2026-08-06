@@ -14,11 +14,21 @@ export const initDatabase = () => {
     );
   `);
 
-  // 2. Detect stale schema for pending_readings (drop if column structure is outdated)
+  // 2. Detect legacy or stale schema for pending_readings and drop table to apply clean structure
   try {
-    db.execSync(`SELECT accountNumber, customerName, r1 FROM pending_readings LIMIT 0;`);
+    // Check for legacy columns (e.g. r1, installationId) that should be removed
+    db.execSync(`SELECT r1, installationId FROM pending_readings LIMIT 0;`);
+    console.log("Legacy pending_readings table detected with obsolete columns. Dropping table...");
+    db.execSync(`DROP TABLE IF EXISTS pending_readings;`);
   } catch (error) {
-    console.log("Stale pending_readings table detected, dropping to apply update:", error);
+    // Expected: legacy columns do not exist
+  }
+
+  try {
+    // Validate that current table contains all required columns
+    db.execSync(`SELECT accountNumber, customerName, addressL1, areaCode, billCycle, tariff, mobileNo, telNbr, custType, netType, netTypeName, hasReading, currentReading, remarks, syncStatus FROM pending_readings LIMIT 0;`);
+  } catch (error) {
+    console.log("Stale pending_readings table structure detected, dropping to apply fresh schema:", error);
     try {
       db.execSync(`DROP TABLE IF EXISTS pending_readings;`);
     } catch (dropError) {
@@ -26,73 +36,26 @@ export const initDatabase = () => {
     }
   }
 
-  // 3. Create pending_readings table
+  // 3. Create pending_readings table (matches /reading-status/area/{code}/pending API response + app status fields)
   db.execSync(`
     CREATE TABLE IF NOT EXISTS pending_readings (
-      accountNumber TEXT NOT NULL,
-      installationId TEXT NOT NULL,
-      customerName TEXT,
-      tariff TEXT,
-      readerCode TEXT,
-      dailyPack TEXT,
-      walkOrder TEXT,
-      currentBillCycle TEXT,
-      billCycleDate TEXT,
-      areaCode TEXT,
-      areaName TEXT,
-      customerCategory TEXT,
-      customerType TEXT,
-      netType TEXT,
-      netTypeName TEXT,
-      readingDate TEXT,
-      previousReadingDate TEXT,
-      numberOfDays INTEGER,
-      meterSequence INTEGER,
-      bfBalance REAL,
-      vatApplicable TEXT,
-      totalMeters INTEGER,
+      accountNumber  TEXT NOT NULL PRIMARY KEY,
+      customerName   TEXT,
+      addressL1      TEXT,
+      areaCode       TEXT,
+      billCycle      INTEGER,
+      tariff         TEXT,
+      mobileNo       TEXT,
+      telNbr         TEXT,
+      custType       TEXT,
+      netType        TEXT,
+      netTypeName    TEXT,
+      hasReading     INTEGER DEFAULT 0,
       currentReading INTEGER,
-      remarks TEXT,
-      syncStatus TEXT DEFAULT 'PENDING',
-      r1 REAL,
-      r2 REAL,
-      r3 REAL,
-      kva REAL,
-      kvah REAL,
-      PRIMARY KEY (accountNumber, installationId)
+      remarks        TEXT,
+      syncStatus     TEXT DEFAULT 'PENDING'
     );
   `);
-
-  // 4. Migrate existing schema: add multi-sequence reading columns if they don't exist yet.
-  //    SQLite does not support "ADD COLUMN IF NOT EXISTS", so we use try/catch per column.
-  const multiSeqColumns = [
-    // Import (mtr_seq = 1)
-    "imp_r1 REAL",
-    "imp_r2 REAL",
-    "imp_r3 REAL",
-    "imp_kva REAL",
-    "imp_kvah REAL",
-    // Export (mtr_seq = 2)
-    "exp_r1 REAL",
-    "exp_r2 REAL",
-    "exp_r3 REAL",
-    "exp_kva REAL",
-    "exp_kvah REAL",
-    // Import-in-Export (mtr_seq = 3) — Net+ only
-    "imp_exp_r1 REAL",
-    "imp_exp_r2 REAL",
-    "imp_exp_r3 REAL",
-    "imp_exp_kva REAL",
-    "imp_exp_kvah REAL",
-  ];
-
-  for (const colDef of multiSeqColumns) {
-    try {
-      db.execSync(`ALTER TABLE pending_readings ADD COLUMN ${colDef};`);
-    } catch (_) {
-      // Column already exists — safe to ignore
-    }
-  }
 };
 
 export default db;
