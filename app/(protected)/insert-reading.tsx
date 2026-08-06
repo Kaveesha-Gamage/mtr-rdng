@@ -144,11 +144,11 @@ function MeterSection({
 }: MeterSectionProps) {
   const fields = ["r1", "r2", "r3", "kva", "kvah"];
   const fieldLabels: Record<string, string> = {
-    r1: "R1",
-    r2: "R2",
-    r3: "R3",
-    kva: "KVA",
-    kvah: "KVAH",
+    r1: "kWh (Day)",
+    r2: "kWh (Peak)",
+    r3: "kWh (Off-Peak)",
+    kva: "kVA",
+    kvah: "kVAh",
   };
 
   return (
@@ -208,8 +208,7 @@ export default function InsertReadingScreen() {
 
   const [customer, setCustomer] = useState<PendingReading | null>(null);
 
-  // ── Normal meter fields ──
-  const [currentReading, setCurrentReading] = useState("");
+  // ── Form & Meter fields ──
   const [remarks, setRemarks] = useState("");
 
   // ── Multi-sequence fields (flat map: "imp_r1" etc.) ──
@@ -258,11 +257,18 @@ export default function InsertReadingScreen() {
             // Restore multi-sequence values
             setMeterValues({});
           } else {
-            // Restore normal reading fields
-            setCurrentReading(
-              record.currentReading != null ? String(record.currentReading) : ""
-            );
+            // Restore normal reading fields (r1, r2, r3, kva, kvah)
+            setMeterValues({
+              norm_r1: record.r1 != null ? String(record.r1) : (record.currentReading != null ? String(record.currentReading) : ""),
+              norm_r2: record.r2 != null ? String(record.r2) : "",
+              norm_r3: record.r3 != null ? String(record.r3) : "",
+              norm_kva: record.kva != null ? String(record.kva) : "",
+              norm_kvah: record.kvah != null ? String(record.kvah) : "",
+            });
             setRemarks(record.remarks || "");
+            if (record.readingDate) {
+              setReadingDate(record.readingDate);
+            }
           }
         } else {
           Alert.alert("Error", "Customer record not found locally.");
@@ -315,28 +321,49 @@ export default function InsertReadingScreen() {
     }
 
     if (netTypeCategory === "normal") {
-      // ── Normal meter ──
-      const valCurrent = currentReading.trim() !== "" ? parseFloat(currentReading) : null;
-      if (valCurrent === null) {
+      // ── Normal meter (kWh (Day), kWh (Peak), kWh (Off-Peak), kVA, kVAh) ──
+      const normLabels: Array<[string, string]> = [
+        ["norm_r1", "kWh (Day)"],
+        ["norm_r2", "kWh (Peak)"],
+        ["norm_r3", "kWh (Off-Peak)"],
+        ["norm_kva", "kVA"],
+        ["norm_kvah", "kVAh"],
+      ];
+
+      for (const [key, label] of normLabels) {
+        if (!validateNum(meterValues[key] ?? "", label)) return;
+      }
+
+      const r1Val = parseNum(meterValues.norm_r1 ?? "");
+      const r2Val = parseNum(meterValues.norm_r2 ?? "");
+      const r3Val = parseNum(meterValues.norm_r3 ?? "");
+      const kvaVal = parseNum(meterValues.norm_kva ?? "");
+      const kvahVal = parseNum(meterValues.norm_kvah ?? "");
+
+      if (
+        r1Val === null &&
+        r2Val === null &&
+        r3Val === null &&
+        kvaVal === null &&
+        kvahVal === null
+      ) {
         triggerHaptic("error");
-        Alert.alert("Validation Error", "Please enter the current meter reading.");
+        Alert.alert("Validation Error", "Please enter at least one meter reading (e.g. kWh (Day)).");
         return;
       }
-      if (isNaN(valCurrent)) {
-        triggerHaptic("error");
-        Alert.alert("Validation Error", "Current reading must be a valid number.");
-        return;
-      }
+
       try {
-        updatePendingReading(
-          accountNumber,
-          installationId,
-          valCurrent,
-          remarks.trim() || null,
-          readingDate.trim() || null
-        );
+        updatePendingReading(accountNumber, installationId, {
+          r1: r1Val,
+          r2: r2Val,
+          r3: r3Val,
+          kva: kvaVal,
+          kvah: kvahVal,
+          remarks: remarks.trim() || null,
+          readingDate: readingDate.trim() || null,
+        });
         triggerHaptic("success");
-        Alert.alert("Success", "Meter reading saved successfully!", [
+        Alert.alert("Success", "Meter readings saved successfully!", [
           { text: "OK", onPress: () => router.back() },
         ]);
       } catch (error) {
@@ -346,17 +373,17 @@ export default function InsertReadingScreen() {
     } else {
       // ── Multi-sequence meter (Metering / Accounting / ++ / +) ──
       const seqLabels: Array<[string, string]> = [
-        ["imp_r1", "Import R1"], ["imp_r2", "Import R2"], ["imp_r3", "Import R3"],
-        ["imp_kva", "Import KVA"], ["imp_kvah", "Import KVAH"],
-        ["exp_r1", "Export R1"], ["exp_r2", "Export R2"], ["exp_r3", "Export R3"],
-        ["exp_kva", "Export KVA"], ["exp_kvah", "Export KVAH"],
+        ["imp_r1", "Import kWh (Day)"], ["imp_r2", "Import kWh (Peak)"], ["imp_r3", "Import kWh (Off-Peak)"],
+        ["imp_kva", "Import kVA"], ["imp_kvah", "Import kVAh"],
+        ["exp_r1", "Export kWh (Day)"], ["exp_r2", "Export kWh (Peak)"], ["exp_r3", "Export kWh (Off-Peak)"],
+        ["exp_kva", "Export kVA"], ["exp_kvah", "Export kVAh"],
       ];
 
       if (netTypeCategory === "net_plus") {
         seqLabels.push(
-          ["imp_exp_r1", "Imp-in-Exp R1"], ["imp_exp_r2", "Imp-in-Exp R2"],
-          ["imp_exp_r3", "Imp-in-Exp R3"], ["imp_exp_kva", "Imp-in-Exp KVA"],
-          ["imp_exp_kvah", "Imp-in-Exp KVAH"]
+          ["imp_exp_r1", "Imp-in-Exp kWh (Day)"], ["imp_exp_r2", "Imp-in-Exp kWh (Peak)"],
+          ["imp_exp_r3", "Imp-in-Exp kWh (Off-Peak)"], ["imp_exp_kva", "Imp-in-Exp kVA"],
+          ["imp_exp_kvah", "Imp-in-Exp kVAh"]
         );
       }
 
@@ -580,65 +607,55 @@ export default function InsertReadingScreen() {
           <Text style={styles.sectionHeader}>ENTER METER READINGS</Text>
 
           {/* ══════════════════════════════════════════════════════
-              TEMPLATE 1: Normal / Unknown
-              Shows a single current reading + remarks
+              TEMPLATE 1: Normal / Standard
+              Shows Meter Reading card (kWh (Day), kWh (Peak), kWh (Off-Peak), kVA, kVAh) + remarks
           ═══════════════════════════════════════════════════════ */}
           {netTypeCategory === "normal" && (
-            <View style={styles.formContainer}>
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Current Reading</Text>
-                <View
-                  style={[
-                    styles.inputWrapper,
-                    focusField === "currentReading" && styles.inputWrapperFocused,
-                  ]}
-                >
-                  <Ionicons
-                    name="speedometer-outline"
-                    size={20}
-                    color={focusField === "currentReading" ? "#1062FE" : "#94A3B8"}
-                    style={styles.inputIcon}
-                  />
-                  <TextInput
-                    style={styles.textInput}
-                    placeholder="Enter current meter reading"
-                    value={currentReading}
-                    onChangeText={setCurrentReading}
-                    keyboardType="numeric"
-                    onFocus={() => { setFocusField("currentReading"); triggerHaptic("light"); }}
-                    onBlur={() => setFocusField(null)}
-                  />
-                </View>
-              </View>
+            <>
+              <MeterSection
+                title="Meter Reading"
+                subtitle="Normal Meter"
+                mtrSeq={1}
+                accentColor="#64748B"
+                iconName="speedometer-outline"
+                prefix="norm"
+                values={meterValues}
+                setValues={setMeterValues}
+                focusField={focusField}
+                setFocusField={setFocusField}
+                onHaptic={() => triggerHaptic("light")}
+              />
 
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Remarks / Exceptions (Optional)</Text>
-                <View
-                  style={[
-                    styles.inputWrapper,
-                    focusField === "remarks" && styles.inputWrapperFocused,
-                  ]}
-                >
-                  <Ionicons
-                    name="chatbubble-ellipses-outline"
-                    size={20}
-                    color={focusField === "remarks" ? "#1062FE" : "#94A3B8"}
-                    style={styles.inputIcon}
-                  />
-                  <TextInput
-                    style={styles.textInput}
-                    placeholder="Enter remarks or anomalies"
-                    value={remarks}
-                    onChangeText={setRemarks}
-                    onFocus={() => { setFocusField("remarks"); triggerHaptic("light"); }}
-                    onBlur={() => setFocusField(null)}
-                  />
+              <View style={styles.formContainer}>
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>Remarks / Exceptions (Optional)</Text>
+                  <View
+                    style={[
+                      styles.inputWrapper,
+                      focusField === "remarks" && styles.inputWrapperFocused,
+                    ]}
+                  >
+                    <Ionicons
+                      name="chatbubble-ellipses-outline"
+                      size={20}
+                      color={focusField === "remarks" ? "#64748B" : "#94A3B8"}
+                      style={styles.inputIcon}
+                    />
+                    <TextInput
+                      style={styles.textInput}
+                      placeholder="Enter remarks or anomalies"
+                      value={remarks}
+                      onChangeText={setRemarks}
+                      onFocus={() => { setFocusField("remarks"); triggerHaptic("light"); }}
+                      onBlur={() => setFocusField(null)}
+                    />
+                  </View>
                 </View>
-              </View>
 
-              {/* Reading Date */}
-              {renderDateField()}
-            </View>
+                {/* Reading Date */}
+                {renderDateField()}
+              </View>
+            </>
           )}
 
           {/* ══════════════════════════════════════════════════════

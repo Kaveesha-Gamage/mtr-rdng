@@ -14,12 +14,12 @@ export const initDatabase = () => {
     );
   `);
 
-  // 2. Detect legacy or stale schema for pending_readings and drop table to apply clean structure if needed
-  const tableCheck = db.getFirstSync<{ count: number }>(
-    `SELECT count(*) as count FROM sqlite_master WHERE type='table' AND name='pending_readings';`
-  );
-
-  if (tableCheck && tableCheck.count > 0) {
+  // 2. Detect legacy or stale schema for pending_readings and drop table to apply clean structure
+  try {
+    // Validate that current table contains all required columns
+    db.execSync(`SELECT accountNumber, customerName, addressL1, areaCode, billCycle, tariff, mobileNo, telNbr, custType, netType, netTypeName, hasReading, currentReading, r1, r2, r3, kva, kvah, readingDate, remarks, syncStatus FROM pending_readings LIMIT 0;`);
+  } catch (error) {
+    console.log("Stale pending_readings table structure detected, dropping to apply fresh schema:", error);
     try {
       // Check for obsolete legacy columns
       db.execSync(`SELECT r1, installationId FROM pending_readings LIMIT 0;`);
@@ -51,7 +51,13 @@ export const initDatabase = () => {
       netType        TEXT,
       netTypeName    TEXT,
       hasReading     INTEGER DEFAULT 0,
-      currentReading INTEGER,
+      currentReading REAL,
+      r1             REAL,
+      r2             REAL,
+      r3             REAL,
+      kva            REAL,
+      kvah           REAL,
+      readingDate    TEXT,
       remarks        TEXT,
       syncStatus     TEXT DEFAULT 'PENDING'
     );

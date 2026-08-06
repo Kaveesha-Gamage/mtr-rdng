@@ -15,6 +15,12 @@ export interface PendingReading {
 
   // Mobile App fields (not returned by API — entered/managed locally)
   currentReading?: number | null;
+  r1?: number | null;
+  r2?: number | null;
+  r3?: number | null;
+  kva?: number | null;
+  kvah?: number | null;
+  readingDate?: string | null;
   remarks?: string | null;
   syncStatus?: "PENDING" | "SYNCED";
 }

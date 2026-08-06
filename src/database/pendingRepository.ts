@@ -60,7 +60,7 @@ export const getPendingReadingsFromDB = (): PendingReading[] => {
     SELECT
       accountNumber, customerName, addressL1, areaCode, billCycle,
       tariff, mobileNo, telNbr, custType, netType, netTypeName, hasReading,
-      currentReading, remarks, syncStatus
+      currentReading, r1, r2, r3, kva, kvah, readingDate, remarks, syncStatus
     FROM pending_readings
     ORDER BY accountNumber ASC
   `);
@@ -102,20 +102,46 @@ export const getPendingReadingsCount = () => {
 
 /**
  * Updates a pending reading locally when a meter reading is captured.
- * Used for Normal (single-reading) meter types.
+ * Used for Normal meter types (saving kWh (Day), kWh (Peak), kWh (Off-Peak), kVA, kVAh).
  */
 export const updatePendingReading = (
   accountNumber: string,
   installationId: string,
-  currentReading: number | null,
-  remarks: string | null,
-  readingDate: string | null
+  readings: {
+    r1: number | null;
+    r2: number | null;
+    r3: number | null;
+    kva: number | null;
+    kvah: number | null;
+    remarks: string | null;
+    readingDate: string | null;
+  }
 ): void => {
+  const currentReading =
+    readings.r1 ?? readings.r2 ?? readings.r3 ?? readings.kva ?? readings.kvah ?? null;
   db.runSync(
     `UPDATE pending_readings
-     SET currentReading = ?, remarks = ?, syncStatus = 'PENDING'
+     SET currentReading = ?,
+         r1 = ?,
+         r2 = ?,
+         r3 = ?,
+         kva = ?,
+         kvah = ?,
+         remarks = ?,
+         readingDate = ?,
+         syncStatus = 'PENDING'
      WHERE accountNumber = ?`,
-    [currentReading, remarks, accountNumber]
+    [
+      currentReading,
+      readings.r1,
+      readings.r2,
+      readings.r3,
+      readings.kva,
+      readings.kvah,
+      readings.remarks,
+      readings.readingDate,
+      accountNumber,
+    ]
   );
 };
 
@@ -131,7 +157,7 @@ export const getPendingReading = (
       `SELECT
         accountNumber, customerName, addressL1, areaCode, billCycle,
         tariff, mobileNo, telNbr, custType, netType, netTypeName, hasReading,
-        currentReading, remarks, syncStatus
+        currentReading, r1, r2, r3, kva, kvah, readingDate, remarks, syncStatus
       FROM pending_readings
       WHERE accountNumber = ?`,
       [accountNumber]
@@ -159,11 +185,22 @@ export const saveMeterReading = (
     meterSequence: number | null;
   }
 ): void => {
+  const currentReading =
+    readings.r1 ?? readings.r2 ?? readings.r3 ?? readings.kva ?? readings.kvah ?? null;
   db.runSync(
     `UPDATE pending_readings 
-     SET currentReading = ?, syncStatus = 'PENDING' 
+     SET currentReading = ?, r1 = ?, r2 = ?, r3 = ?, kva = ?, kvah = ?, readingDate = ?, syncStatus = 'PENDING' 
      WHERE accountNumber = ?`,
-    [readings.r1, accountNumber]
+    [
+      currentReading,
+      readings.r1,
+      readings.r2,
+      readings.r3,
+      readings.kva,
+      readings.kvah,
+      readings.readingDate,
+      accountNumber,
+    ]
   );
 };
 
