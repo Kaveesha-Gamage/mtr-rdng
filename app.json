@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "MeterGO",
+    "name": "MeterGo",
     "slug": "metergo",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -20,7 +20,7 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.anonymous.BULKMETERREADER"
+      "package": "com.metergo.app"
     },
     "web": {
       "output": "static",
