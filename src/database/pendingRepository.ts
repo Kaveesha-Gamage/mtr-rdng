@@ -161,26 +161,15 @@ export const saveMeterReading = (
 ): void => {
   db.runSync(
     `UPDATE pending_readings 
-     SET r1 = ?, r2 = ?, r3 = ?, kva = ?, kvah = ?, readingDate = ?, meterSequence = ?, syncStatus = 'PENDING' 
-     WHERE accountNumber = ? AND installationId = ?`,
-    [
-      readings.r1,
-      readings.r2,
-      readings.r3,
-      readings.kva,
-      readings.kvah,
-      readings.readingDate,
-      readings.meterSequence,
-      accountNumber,
-      installationId,
-    ]
+     SET currentReading = ?, syncStatus = 'PENDING' 
+     WHERE accountNumber = ?`,
+    [readings.r1, accountNumber]
   );
 };
 
 /**
  * Persists multi-sequence meter readings for net-type customers.
- * Saves import (seq=1), export (seq=2), and optionally import-in-export (seq=3) readings
- * as separate flat column groups on the same row.
+ * Updates currentReading and syncStatus on the customer's row.
  */
 export const saveMultiSequenceReadings = (
   accountNumber: string,
@@ -207,21 +196,12 @@ export const saveMultiSequenceReadings = (
     imp_exp_kvah?: number | null;
   }
 ): void => {
+  const currentReading = data.imp_r1 ?? data.exp_r1 ?? data.imp_exp_r1 ?? null;
   db.runSync(
     `UPDATE pending_readings 
-     SET 
-       imp_r1 = ?, imp_r2 = ?, imp_r3 = ?, imp_kva = ?, imp_kvah = ?,
-       exp_r1 = ?, exp_r2 = ?, exp_r3 = ?, exp_kva = ?, exp_kvah = ?,
-       imp_exp_r1 = ?, imp_exp_r2 = ?, imp_exp_r3 = ?, imp_exp_kva = ?, imp_exp_kvah = ?,
-       syncStatus = 'PENDING'
+     SET currentReading = ?, syncStatus = 'PENDING'
      WHERE accountNumber = ?`,
-    [
-      data.imp_r1, data.imp_r2, data.imp_r3, data.imp_kva, data.imp_kvah,
-      data.exp_r1, data.exp_r2, data.exp_r3, data.exp_kva, data.exp_kvah,
-      data.imp_exp_r1 ?? null, data.imp_exp_r2 ?? null, data.imp_exp_r3 ?? null,
-      data.imp_exp_kva ?? null, data.imp_exp_kvah ?? null,
-      accountNumber,
-    ]
+    [currentReading, accountNumber]
   );
 };
 

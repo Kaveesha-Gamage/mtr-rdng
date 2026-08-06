@@ -92,8 +92,8 @@ export default function PendingReadings() {
     data.sort((a, b) => {
       if (sortBy === "Account Number") {
         return (a.accountNumber || "").localeCompare(b.accountNumber || "");
-      } else if (sortBy === "Installation ID") {
-        return (a.installationId || "").localeCompare(b.installationId || "");
+      } else if (sortBy === "Customer Name") {
+        return (a.customerName || "").localeCompare(b.customerName || "");
       }
       return 0;
     });
@@ -205,8 +205,8 @@ export default function PendingReadings() {
               value="Account Number"
             />
             <Picker.Item
-              label="Installation ID"
-              value="Installation ID"
+              label="Customer Name"
+              value="Customer Name"
             />
           </Picker>
         </View>
@@ -259,9 +259,8 @@ export default function PendingReadings() {
                 : styles.badgeTextGray;
 
           const isCompleted =
-            (item.r1 !== null && item.r1 !== undefined) ||
-            (item.currentReading !== null && item.currentReading !== undefined) ||
-            (item.imp_r1 !== null && item.imp_r1 !== undefined);
+            Boolean(item.hasReading) ||
+            (item.currentReading !== null && item.currentReading !== undefined);
 
           return (
             <View style={[styles.card, isCompleted && styles.completedCard]}>
@@ -285,8 +284,8 @@ export default function PendingReadings() {
               {/* Bottom Row: Reader info & Action Button */}
               <View style={styles.cardBottomRow}>
                 <View style={styles.metaContainer}>
-                  {item.readerCode ? (
-                    <Text style={styles.metaText}>Reader: {item.readerCode}</Text>
+                  {item.tariff ? (
+                    <Text style={styles.metaText}>Tariff: {item.tariff}</Text>
                   ) : null}
                   {isCompleted ? (
                     <View style={styles.completedBadge}>
