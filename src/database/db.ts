@@ -16,17 +16,8 @@ export const initDatabase = () => {
 
   // 2. Detect legacy or stale schema for pending_readings and drop table to apply clean structure
   try {
-    // Check for legacy columns (e.g. r1, installationId) that should be removed
-    db.execSync(`SELECT r1, installationId FROM pending_readings LIMIT 0;`);
-    console.log("Legacy pending_readings table detected with obsolete columns. Dropping table...");
-    db.execSync(`DROP TABLE IF EXISTS pending_readings;`);
-  } catch (error) {
-    // Expected: legacy columns do not exist
-  }
-
-  try {
     // Validate that current table contains all required columns
-    db.execSync(`SELECT accountNumber, customerName, addressL1, areaCode, billCycle, tariff, mobileNo, telNbr, custType, netType, netTypeName, hasReading, currentReading, remarks, syncStatus FROM pending_readings LIMIT 0;`);
+    db.execSync(`SELECT accountNumber, customerName, addressL1, areaCode, billCycle, tariff, mobileNo, telNbr, custType, netType, netTypeName, hasReading, currentReading, r1, r2, r3, kva, kvah, readingDate, remarks, syncStatus FROM pending_readings LIMIT 0;`);
   } catch (error) {
     console.log("Stale pending_readings table structure detected, dropping to apply fresh schema:", error);
     try {
@@ -51,7 +42,13 @@ export const initDatabase = () => {
       netType        TEXT,
       netTypeName    TEXT,
       hasReading     INTEGER DEFAULT 0,
-      currentReading INTEGER,
+      currentReading REAL,
+      r1             REAL,
+      r2             REAL,
+      r3             REAL,
+      kva            REAL,
+      kvah           REAL,
+      readingDate    TEXT,
       remarks        TEXT,
       syncStatus     TEXT DEFAULT 'PENDING'
     );
