@@ -66,20 +66,47 @@ export const getPendingReadingsFromDB = (): PendingReading[] => {
   `);
 };
 
+export interface TmpRmtReading {
+  accountNumber: string;
+  installationId?: string | null;
+  readingDate?: string | null;
+  currentReading?: number | null;
+  r1?: number | null;
+  r2?: number | null;
+  r3?: number | null;
+  kva?: number | null;
+  kvah?: number | null;
+  imp_r1?: number | null;
+  imp_r2?: number | null;
+  imp_r3?: number | null;
+  imp_kva?: number | null;
+  imp_kvah?: number | null;
+  exp_r1?: number | null;
+  exp_r2?: number | null;
+  exp_r3?: number | null;
+  exp_kva?: number | null;
+  exp_kvah?: number | null;
+  imp_exp_r1?: number | null;
+  imp_exp_r2?: number | null;
+  imp_exp_r3?: number | null;
+  imp_exp_kva?: number | null;
+  imp_exp_kvah?: number | null;
+  remarks?: string | null;
+  syncStatus?: string;
+  createdAt?: string;
+}
+
 /**
  * Gets stats of pending readings for dashboard display.
- * A reading is considered "taken" if currentReading is filled or hasReading is true.
+ * Total customers comes from pending_readings.
+ * Taken count comes from distinct accountNumbers in tmp_rmt_rdngs.
  */
 export const getPendingReadingsCount = () => {
   try {
     const result = db.getFirstSync<{ total: number; taken: number }>(`
       SELECT
-        COUNT(*) as total,
-        SUM(CASE
-          WHEN currentReading IS NOT NULL OR hasReading = 1
-          THEN 1 ELSE 0
-        END) as taken
-      FROM pending_readings
+        (SELECT COUNT(*) FROM pending_readings) as total,
+        (SELECT COUNT(DISTINCT accountNumber) FROM tmp_rmt_rdngs) as taken
     `);
 
     const total = result?.total || 0;
@@ -88,7 +115,7 @@ export const getPendingReadingsCount = () => {
     return {
       totalCustomers: total,
       receivedCount: taken,
-      pendingCount: total - taken,
+      pendingCount: Math.max(0, total - taken),
     };
   } catch (error) {
     console.error("Error fetching pending readings counts from SQLite:", error);
@@ -101,8 +128,8 @@ export const getPendingReadingsCount = () => {
 };
 
 /**
- * Updates a pending reading locally when a meter reading is captured.
- * Used for Normal meter types (saving kWh (Day), kWh (Peak), kWh (Off-Peak), kVA, kVAh).
+ * Updates/Saves a meter reading locally into tmp_rmt_rdngs table when captured.
+ * Used for Normal meter types. Keeps pending_readings table unchanged.
  */
 export const updatePendingReading = (
   accountNumber: string,
@@ -119,19 +146,27 @@ export const updatePendingReading = (
 ): void => {
   const currentReading =
     readings.r1 ?? readings.r2 ?? readings.r3 ?? readings.kva ?? readings.kvah ?? null;
+
   db.runSync(
-    `UPDATE pending_readings
-     SET currentReading = ?,
-         r1 = ?,
-         r2 = ?,
-         r3 = ?,
-         kva = ?,
-         kvah = ?,
-         remarks = ?,
-         readingDate = ?,
-         syncStatus = 'PENDING'
-     WHERE accountNumber = ?`,
+    `INSERT INTO tmp_rmt_rdngs (
+      accountNumber, installationId, readingDate, currentReading,
+      r1, r2, r3, kva, kvah, remarks, syncStatus
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'PENDING')
+    ON CONFLICT(accountNumber) DO UPDATE SET
+      installationId = excluded.installationId,
+      readingDate    = excluded.readingDate,
+      currentReading = excluded.currentReading,
+      r1             = excluded.r1,
+      r2             = excluded.r2,
+      r3             = excluded.r3,
+      kva            = excluded.kva,
+      kvah           = excluded.kvah,
+      remarks        = excluded.remarks,
+      syncStatus     = 'PENDING'`,
     [
+      accountNumber,
+      installationId || null,
+      readings.readingDate,
       currentReading,
       readings.r1,
       readings.r2,
@@ -139,21 +174,20 @@ export const updatePendingReading = (
       readings.kva,
       readings.kvah,
       readings.remarks,
-      readings.readingDate,
-      accountNumber,
     ]
   );
 };
 
 /**
- * Retrieves a single pending reading by Account Number.
+ * Retrieves a single pending reading by Account Number, merging base customer info
+ * from pending_readings with any reading stored in tmp_rmt_rdngs.
  */
 export const getPendingReading = (
   accountNumber: string,
   installationId: string
 ): PendingReading | null => {
   try {
-    return db.getFirstSync<PendingReading>(
+    const baseRecord = db.getFirstSync<PendingReading>(
       `SELECT
         accountNumber, customerName, addressL1, areaCode, billCycle,
         tariff, mobileNo, telNbr, custType, netType, netTypeName, hasReading,
@@ -162,6 +196,42 @@ export const getPendingReading = (
       WHERE accountNumber = ?`,
       [accountNumber]
     );
+
+    if (!baseRecord) return null;
+
+    const tmpRecord = db.getFirstSync<{
+      currentReading: number | null;
+      r1: number | null;
+      r2: number | null;
+      r3: number | null;
+      kva: number | null;
+      kvah: number | null;
+      readingDate: string | null;
+      remarks: string | null;
+      syncStatus: "PENDING" | "SYNCED";
+    }>(
+      `SELECT currentReading, r1, r2, r3, kva, kvah, readingDate, remarks, syncStatus
+       FROM tmp_rmt_rdngs
+       WHERE accountNumber = ?`,
+      [accountNumber]
+    );
+
+    if (tmpRecord) {
+      return {
+        ...baseRecord,
+        currentReading: tmpRecord.currentReading ?? baseRecord.currentReading,
+        r1: tmpRecord.r1 ?? baseRecord.r1,
+        r2: tmpRecord.r2 ?? baseRecord.r2,
+        r3: tmpRecord.r3 ?? baseRecord.r3,
+        kva: tmpRecord.kva ?? baseRecord.kva,
+        kvah: tmpRecord.kvah ?? baseRecord.kvah,
+        readingDate: tmpRecord.readingDate ?? baseRecord.readingDate,
+        remarks: tmpRecord.remarks ?? baseRecord.remarks,
+        syncStatus: tmpRecord.syncStatus ?? baseRecord.syncStatus,
+      };
+    }
+
+    return baseRecord;
   } catch (error) {
     console.error("Failed to query single pending reading:", error);
     return null;
@@ -169,8 +239,37 @@ export const getPendingReading = (
 };
 
 /**
+ * Retrieves temporary meter reading record from tmp_rmt_rdngs by Account Number.
+ */
+export const getTmpReading = (accountNumber: string): TmpRmtReading | null => {
+  try {
+    return db.getFirstSync<TmpRmtReading>(
+      `SELECT * FROM tmp_rmt_rdngs WHERE accountNumber = ?`,
+      [accountNumber]
+    );
+  } catch (error) {
+    console.error("Failed to query tmp_rmt_rdngs record:", error);
+    return null;
+  }
+};
+
+/**
+ * Retrieves all saved records from tmp_rmt_rdngs.
+ */
+export const getAllTmpReadingsFromDB = (): TmpRmtReading[] => {
+  try {
+    return db.getAllSync<TmpRmtReading>(
+      `SELECT * FROM tmp_rmt_rdngs ORDER BY createdAt DESC`
+    );
+  } catch (error) {
+    console.error("Failed to fetch tmp_rmt_rdngs:", error);
+    return [];
+  }
+};
+
+/**
  * Persists the manual meter readings for a customer (legacy single-sequence).
- * Kept for backward compatibility with Normal meter types.
+ * Saves to tmp_rmt_rdngs instead of pending_readings.
  */
 export const saveMeterReading = (
   accountNumber: string,
@@ -185,28 +284,20 @@ export const saveMeterReading = (
     meterSequence: number | null;
   }
 ): void => {
-  const currentReading =
-    readings.r1 ?? readings.r2 ?? readings.r3 ?? readings.kva ?? readings.kvah ?? null;
-  db.runSync(
-    `UPDATE pending_readings 
-     SET currentReading = ?, r1 = ?, r2 = ?, r3 = ?, kva = ?, kvah = ?, readingDate = ?, syncStatus = 'PENDING' 
-     WHERE accountNumber = ?`,
-    [
-      currentReading,
-      readings.r1,
-      readings.r2,
-      readings.r3,
-      readings.kva,
-      readings.kvah,
-      readings.readingDate,
-      accountNumber,
-    ]
-  );
+  updatePendingReading(accountNumber, installationId, {
+    r1: readings.r1,
+    r2: readings.r2,
+    r3: readings.r3,
+    kva: readings.kva,
+    kvah: readings.kvah,
+    remarks: null,
+    readingDate: readings.readingDate,
+  });
 };
 
 /**
- * Persists multi-sequence meter readings for net-type customers.
- * Updates currentReading and syncStatus on the customer's row.
+ * Persists multi-sequence meter readings for net-type customers into tmp_rmt_rdngs.
+ * Keeps pending_readings table unchanged.
  */
 export const saveMultiSequenceReadings = (
   accountNumber: string,
@@ -234,17 +325,64 @@ export const saveMultiSequenceReadings = (
   }
 ): void => {
   const currentReading = data.imp_r1 ?? data.exp_r1 ?? data.imp_exp_r1 ?? null;
+
   db.runSync(
-    `UPDATE pending_readings 
-     SET currentReading = ?, syncStatus = 'PENDING'
-     WHERE accountNumber = ?`,
-    [currentReading, accountNumber]
+    `INSERT INTO tmp_rmt_rdngs (
+      accountNumber, installationId, readingDate, currentReading,
+      imp_r1, imp_r2, imp_r3, imp_kva, imp_kvah,
+      exp_r1, exp_r2, exp_r3, exp_kva, exp_kvah,
+      imp_exp_r1, imp_exp_r2, imp_exp_r3, imp_exp_kva, imp_exp_kvah,
+      syncStatus
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'PENDING')
+    ON CONFLICT(accountNumber) DO UPDATE SET
+      installationId = excluded.installationId,
+      readingDate    = excluded.readingDate,
+      currentReading = excluded.currentReading,
+      imp_r1         = excluded.imp_r1,
+      imp_r2         = excluded.imp_r2,
+      imp_r3         = excluded.imp_r3,
+      imp_kva        = excluded.imp_kva,
+      imp_kvah       = excluded.imp_kvah,
+      exp_r1         = excluded.exp_r1,
+      exp_r2         = excluded.exp_r2,
+      exp_r3         = excluded.exp_r3,
+      exp_kva        = excluded.exp_kva,
+      exp_kvah       = excluded.exp_kvah,
+      imp_exp_r1     = excluded.imp_exp_r1,
+      imp_exp_r2     = excluded.imp_exp_r2,
+      imp_exp_r3     = excluded.imp_exp_r3,
+      imp_exp_kva    = excluded.imp_exp_kva,
+      imp_exp_kvah   = excluded.imp_exp_kvah,
+      syncStatus     = 'PENDING'`,
+    [
+      accountNumber,
+      installationId || null,
+      data.readingDate,
+      currentReading,
+      data.imp_r1 ?? null,
+      data.imp_r2 ?? null,
+      data.imp_r3 ?? null,
+      data.imp_kva ?? null,
+      data.imp_kvah ?? null,
+      data.exp_r1 ?? null,
+      data.exp_r2 ?? null,
+      data.exp_r3 ?? null,
+      data.exp_kva ?? null,
+      data.exp_kvah ?? null,
+      data.imp_exp_r1 ?? null,
+      data.imp_exp_r2 ?? null,
+      data.imp_exp_r3 ?? null,
+      data.imp_exp_kva ?? null,
+      data.imp_exp_kvah ?? null,
+    ]
   );
 };
 
 /**
- * Clears the pending readings table.
+ * Clears the pending readings and tmp_rmt_rdngs tables.
  */
 export const clearPendingReadings = (): void => {
   db.execSync(`DELETE FROM pending_readings`);
+  db.execSync(`DELETE FROM tmp_rmt_rdngs`);
 };
+

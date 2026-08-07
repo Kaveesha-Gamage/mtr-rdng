@@ -53,6 +53,39 @@ export const initDatabase = () => {
       syncStatus     TEXT DEFAULT 'PENDING'
     );
   `);
+
+  // 4. Create tmp_rmt_rdngs table (stores user-inserted meter readings)
+  db.execSync(`
+    CREATE TABLE IF NOT EXISTS tmp_rmt_rdngs (
+      accountNumber  TEXT NOT NULL PRIMARY KEY,
+      installationId TEXT,
+      readingDate    TEXT,
+      currentReading REAL,
+      r1             REAL,
+      r2             REAL,
+      r3             REAL,
+      kva            REAL,
+      kvah           REAL,
+      imp_r1         REAL,
+      imp_r2         REAL,
+      imp_r3         REAL,
+      imp_kva        REAL,
+      imp_kvah       REAL,
+      exp_r1         REAL,
+      exp_r2         REAL,
+      exp_r3         REAL,
+      exp_kva        REAL,
+      exp_kvah       REAL,
+      imp_exp_r1     REAL,
+      imp_exp_r2     REAL,
+      imp_exp_r3     REAL,
+      imp_exp_kva    REAL,
+      imp_exp_kvah   REAL,
+      remarks        TEXT,
+      syncStatus     TEXT DEFAULT 'PENDING',
+      createdAt      TEXT DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
 };
 
 export default db;

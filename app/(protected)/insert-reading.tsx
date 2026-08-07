@@ -18,6 +18,7 @@ import {
 
 import {
   getPendingReading,
+  getTmpReading,
   saveMultiSequenceReadings,
   updatePendingReading,
 } from "../../src/database/pendingRepository";
@@ -253,9 +254,33 @@ export default function InsertReadingScreen() {
           setCustomer(record);
           setReadingDate(new Date().toISOString().split("T")[0]);
 
-          if (getNetTypeCategory(record.netTypeName || record.netType || "") !== "normal") {
-            // Restore multi-sequence values
-            setMeterValues({});
+          const category = getNetTypeCategory(record.netTypeName || record.netType || "");
+          if (category !== "normal") {
+            // Restore multi-sequence values from tmp_rmt_rdngs
+            const tmp = getTmpReading(accountNumber);
+            if (tmp) {
+              setMeterValues({
+                imp_r1: tmp.imp_r1 != null ? String(tmp.imp_r1) : "",
+                imp_r2: tmp.imp_r2 != null ? String(tmp.imp_r2) : "",
+                imp_r3: tmp.imp_r3 != null ? String(tmp.imp_r3) : "",
+                imp_kva: tmp.imp_kva != null ? String(tmp.imp_kva) : "",
+                imp_kvah: tmp.imp_kvah != null ? String(tmp.imp_kvah) : "",
+                exp_r1: tmp.exp_r1 != null ? String(tmp.exp_r1) : "",
+                exp_r2: tmp.exp_r2 != null ? String(tmp.exp_r2) : "",
+                exp_r3: tmp.exp_r3 != null ? String(tmp.exp_r3) : "",
+                exp_kva: tmp.exp_kva != null ? String(tmp.exp_kva) : "",
+                exp_kvah: tmp.exp_kvah != null ? String(tmp.exp_kvah) : "",
+                imp_exp_r1: tmp.imp_exp_r1 != null ? String(tmp.imp_exp_r1) : "",
+                imp_exp_r2: tmp.imp_exp_r2 != null ? String(tmp.imp_exp_r2) : "",
+                imp_exp_r3: tmp.imp_exp_r3 != null ? String(tmp.imp_exp_r3) : "",
+                imp_exp_kva: tmp.imp_exp_kva != null ? String(tmp.imp_exp_kva) : "",
+                imp_exp_kvah: tmp.imp_exp_kvah != null ? String(tmp.imp_exp_kvah) : "",
+              });
+              if (tmp.readingDate) setReadingDate(tmp.readingDate);
+              if (tmp.remarks) setRemarks(tmp.remarks);
+            } else {
+              setMeterValues({});
+            }
           } else {
             // Restore normal reading fields (r1, r2, r3, kva, kvah)
             setMeterValues({
