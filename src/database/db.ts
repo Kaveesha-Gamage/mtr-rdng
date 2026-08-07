@@ -21,9 +21,18 @@ export const initDatabase = () => {
   } catch (error) {
     console.log("Stale pending_readings table structure detected, dropping to apply fresh schema:", error);
     try {
+      // Check for obsolete legacy columns
+      db.execSync(`SELECT r1, installationId FROM pending_readings LIMIT 0;`);
+      console.log("Legacy pending_readings table detected with obsolete columns. Dropping table...");
       db.execSync(`DROP TABLE IF EXISTS pending_readings;`);
-    } catch (dropError) {
-      console.error("Failed to drop stale table:", dropError);
+    } catch (error) {
+      // Expected if legacy columns do not exist; now validate current table structure
+      try {
+        db.execSync(`SELECT accountNumber, customerName, addressL1, areaCode, billCycle, tariff, mobileNo, telNbr, custType, netType, netTypeName, hasReading, currentReading, remarks, syncStatus FROM pending_readings LIMIT 0;`);
+      } catch (schemaError) {
+        console.log("Stale pending_readings table structure detected, dropping to apply fresh schema.");
+        db.execSync(`DROP TABLE IF EXISTS pending_readings;`);
+      }
     }
   }
 
